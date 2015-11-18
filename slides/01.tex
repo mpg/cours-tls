@@ -11,4 +11,127 @@
 
 \toc
 
+\section{Introduction}
+\tocsect
+
+\begin{frame}{TLS ça fait quoi ?}
+  Ça assure la sécurité des \emph{communications} :
+  \begin{description}
+    \item[Confidentialité] Un attaquant qui peut tout écouter ne peut rien
+      apprendre sur les données échangées, à part peut-être leur longueur.
+    \item[Intégrité] Un attaquant qui modifie les données en transit sera
+      détecté.
+    \item[Authentification] optionnelle d'une ou des deux parties :
+      l'attaquant ne peut pas se faire passer pour quelqu'un d'autre.
+  \end{description}
+\end{frame}
+
+\begin{frame}{Quelles menaces ?}
+  RFC 3553 section 3 : the Internet threat model (2003)
+
+  \begin{columns}
+    \column[t]{.5\textwidth}
+    \begin{block}{Attaquant réseau passif}
+      \begin{itemize}
+        \item Ne fait qu'écouter
+        \item Attaque la confidentialité
+        \item<2-> Échelle (perpass)
+        \item<3-> Attaques « du futur »
+      \end{itemize}
+    \end{block}
+
+    \begin{block}{Tout le reste}<4->
+      Bugs, sécurité du poste local, utilisateurs, etc.
+    \end{block}
+
+    \column[t]{.5\textwidth}
+    \begin{block}{Attaquant réseau actif}
+      \begin{itemize}
+        \item Peut modifier les messages
+        \item Attaque l'authenticité, l'intégrité, la confidentialité
+        \item Man-in-the-middle (MitM)
+        \item<2-> Plus coûteux (ciblé ?)
+      \end{itemize}
+    \end{block}
+
+    \begin{block}{Canaux auxiliaires}<4->
+    \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Ça s'utilise où ?}
+  \begin{block}{Couche}
+    \begin{description}
+      \item[Application] HTTP, IMAP, SMTP, XMPP, \visible<2->{RTSP}
+      \item[Session] TLS, \visible<2->{DTLS}
+      \item[Transport] TCP, \visible<2->{UDP}
+      \item[Internet] IPv4, IPv6
+      \item[Lien] tout ce que vous voulez
+    \end{description}
+  \end{block}
+
+  \begin{block}{Modes}
+    \begin{itemize}
+      \item avec port dédié : HTTP/80 \textrightarrow{} HTTPS/443
+      \item sur le même port : STARTTLS (IMAP, SMTP, XMPP)
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Versions}
+  \begin{center}
+    \begin{tabular}{rcccl}
+      \toprule
+      Nom & année & RFC & die-die-die & « vraie » version \\
+      \midrule
+      SSL 1.0 & -- & -- & mort-né & 1.0 \\
+      SSL 2.0 & 1995 & -- & 6176 (2011) & 2.0 \\
+      SSL 3.0 & 1996 & 6101 & 7568 (2015) & 3.0 \\
+      TLS 1.0 & 1999 & 2246 & -- & 3.1 \\
+      TLS 1.1 & 2006 & 4346 & -- & 3.2 \\
+      DTLS 1.0 & 2006 & 4347 & -- & 3.2 \\
+      TLS 1.2 & 2008 & 5246 & -- & 3.3 \\
+      DTLS 1.2 & 2012 & 6347 & -- & 3.3 \\
+      \bottomrule
+    \end{tabular}
+  \end{center}
+\end{frame}
+
+\begin{frame}{La réalité}
+  En vrai, il faut lire un peu plus de RFC\dots
+
+  \begin{description}
+    \item[Sécurité] 5746 secure renegotiation, 7627 session hash, 7366
+      encrypt-then-mac, 7507 downgrade SCSV,
+    \item[Algos] (300+ suites définies !) : 4279 PSK, 4492 ECC, 5054 SRP, 5288
+      AES-GCM, 5289 ECC-AES-GCM, 5487 PSK-AES-GCM, 5489 ECDHE-PSK, 6655
+      AES-CCM, 7251 ECC-AES-CCM, \dots
+    \item[Fonctionnalités] 6066 extensions diverses, 5878 autorisation, 6520
+      heartbeat, 5077 tickets de session, 7250 raw public key, 6091 OpenPGP,
+      7301 ALPN, \dots
+    \item[Usage] 7457 attaques, 7525 bonnes pratiques générales, 7590 XMPP,
+      d'autres à venir
+  \end{description}
+
+  Cf les registres sur iana.org.
+\end{frame}
+
+\begin{frame}{Plus de réalité}
+  En 2015, sur les sites les plus populaires accessibles en HTTPS
+  \begin{itemize}
+    \item environ un tiers considérés sûrs ;
+    \item 14~\% acceptent des algos peu sûrs ;
+    \item 31~\% acceptent SSL 3.0 ;
+    \item 69~\% offrent TLS 1.2 ;
+    \item 75~\% offrent la \emph{forward secrecy} ;
+    \item 99,9~\% ont un certificat avec un clé assez grande.
+  \end{itemize}
+
+  Source : \url{https://www.trustworthyinternet.org/ssl-pulse/}
+
+  \medskip
+
+  Sur le million de sites les plus populaires, en 2014, seuls 45~\%
+  accessible en HTTPS\dots
+\end{frame}
 \end{document}

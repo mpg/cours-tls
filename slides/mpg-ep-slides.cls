@@ -12,7 +12,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[sc, osf]{mathpazo}
-\usepackage{amssymb}
+\usepackage{textcomp, amssymb}
 \renewcommand\sfdefault{iwona}
 \rmfamily
 \DeclareFontShape{T1}{pplj}{bx}{sc}{<->ssub*pplj/bx/n}{}
@@ -35,6 +35,7 @@
 %
 \usepackage{mathtools, mathstyle}
 \usepackage{ifmtarg, fixltx2e, xargs, xspace, cmdstring, ted, etex}
+\usepackage{booktabs}
 \usepackage{tikz}
 \usetikzlibrary{arrows,positioning,fit,decorations.pathmorphing,shapes.misc}
 \usepackage{babel}
@@ -128,7 +129,7 @@
 % tocs [[2
 %
 \newcommand \tocsect {%
-  %\frame{\tableofcontents[currentsection]}
+  \frame{\tableofcontents[currentsection]}
 }
 \newcommand \toc {%
   \frame{\tableofcontents}
