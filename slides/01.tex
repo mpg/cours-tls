@@ -176,7 +176,7 @@
   Trois types de chiffrement-authentification :
   \begin{enumerate}
     \item Par flot (y compris NULL)
-    \item Par block
+    \item Par bloc avec CBC
     \item AEAD = authenticated encryption with additional data (seulement TLS
       1.2)
   \end{enumerate}
@@ -249,6 +249,129 @@
           diff |= a[i] ^ b[i];
     \end{Verbatim}
   \end{block}
+\end{frame}
+
+\begin{frame}{Rappel : CBC}
+  % wget https://upload.wikimedia.org/wikipedia/commons/8/80/CBC_encryption.svg
+  % inkscape -D -z --file=CBC_encryption.svg --export-pdf=cbc-enc.pdf
+  \includegraphics<1>[width=\textwidth]{cbc-enc}
+
+  % wget https://upload.wikimedia.org/wikipedia/commons/2/2a/CBC_decryption.svg
+  % inkscape -D -z --file=CBC_decryption.svg --export-pdf=cbc-dec.pdf
+  \includegraphics<2>[width=\textwidth]{cbc-dec}
+
+  \medskip
+
+  (Crédit image : Wikipédia.)
+\end{frame}
+
+\begin{frame}{Chiffrement authentifié avec CBC}
+  \begin{block}{TLS : MAC then Encrypt (MtE)}
+    \begin{itemize}
+      \item MAC = HMAC(métadonnées, message)
+      \item Sortie = AES-CBC(message, MAC, padding)
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Encrypt and MAC}
+    \begin{itemize}
+      \item MAC = HMAC(métadonnées, message)
+      \item Sortie = AES-CBC(message, padding), MAC
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Encrypt then MAC (EtM)}
+    \begin{itemize}
+      \item Chiffré = AES-CBC(message, padding)
+      \item MAC = HMAC(métadonnées, chiffré)
+      \item Sortie = Chiffré, MAC
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Détails sur le padding}
+  \begin{block}{Principe}
+    \begin{itemize}
+      \item $L \in \{ 0, \dots, 255 \}$ tel que \( L + 1 + l(m) = 0 \mod b \).
+      \item En pratique, \( L \in \{ 0, \dots, b - 1 \} \) et \( b = 16 \)
+        pour AES.
+      \item Valeur avec SSL 3.0 : $L$ octets quelconques suivis d'un octet de
+        valeur $L$.
+      \item Valeur avec TLS 1.x : $L + 1$ octets de valeur $L$.
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Exemple}
+    \begin{itemize}
+      \item Message de longueur 4.
+      \item Algos utilisés : AES et HMAC-SHA1.
+      \item Longueur totale avant padding : 24 octets.
+      \item Longueur typique du padding : 8 octets.
+      \item Valeur du padding TLS : \texttt{07 07 07 07 07 07 07 07}.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Un oracle de padding : POODLE (1)}
+  \begin{block}{Observation clé}
+    \begin{itemize}
+      \item Supposons qu'il y a un block complet de padding, chiffré $C_n$.
+      \item On remplace $C_n$ par un $C'$ quelconque.
+      \item Alors le message est accepté ssi $\text{AES}^{-1}(C') \oplus
+        C_{n-1}$ se termine par un octet de valeur $15$. (Exercice.)
+      \item Si le message est accepté (une fois sur 256) on connait le dernier
+        octet de $\text{AES}^{-1}(C')$.
+      \item La victime innocente s'est comportée comme un \emph{oracle}.
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Contexte}
+    \begin{itemize}
+      \item On cherche à voler un cookie
+      \item On peut générer des requêtes contenant le cookie
+      \item On peut modifier la requête chiffrée sur le chemin
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Un oracle de padding : POODLE (2)}
+  \begin{Verbatim}[gobble=4]
+    POST /path Cookie: name=?????\r\n\r\n body MAC padding
+  \end{Verbatim}
+  \begin{enumerate}
+    \item On ajuste \texttt{path} et \texttt{body} pour que:
+      \begin{itemize}
+        \item L'octet visé soit le dernier du bloc $i$.
+        \item Le padding soit de longueur un bloc exactement.
+      \end{itemize}
+    \item Le client innocent chiffre en $C_1, \dots, C_i, \dots, C_n$.
+    \item On envoie au serveur $C_1, \dots, C_i, \dots, C_i$.
+    \item Le serveur innocent nous donne une erreur, ou une fois sur 256, la
+      valeur du dernier octet de $\text{AES}^{-1}(C_i)$.
+    \item On XORe avec le dernier octet de $C_{i-1}$ pour trouver la valeur de
+      l'octet visé.
+    \item On passe à un autre octet jusqu'à avoir tout le cookie.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Un oracle de padding : POODLE (3)}
+  \begin{block}{Analyse}
+    \begin{itemize}
+      \item Le client innocent connait le cookie secret et la clé de
+        chiffrement.
+      \item Le serveur innocent connaît la clé de chiffrement.
+      \item Le serveur nous donne 8 bits du secret avec probabilité $2^{-8}$.
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Historique}
+    \begin{itemize}
+      \item 1999 : problème résolu dans TLS 1.0
+      \item 2002 : principe de l'oracle publié (Vaudenay)
+      \item 2015 : exploit pratique publié, accélère la mort de SSL 3.0
+    \end{itemize}
+  \end{block}
+
 \end{frame}
 
 \end{document}
