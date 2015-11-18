@@ -6,9 +6,9 @@
 
 % use beamer with custom encoding, fonts and colors [[2
 %
+% add french and table (for xcolor via beamer) to global options
+\edef\@classoptionslist{\@classoptionslist,french,table}
 \LoadClass{beamer}
-% add french to global options
-\edef\@classoptionslist{\@classoptionslist,french}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[sc, osf]{mathpazo}
@@ -35,9 +35,9 @@
 %
 \usepackage{mathtools, mathstyle}
 \usepackage{ifmtarg, fixltx2e, xargs, xspace, cmdstring, ted, etex}
-\usepackage{booktabs}
+\usepackage{booktabs, fancyvrb}
 \usepackage{tikz}
-\usetikzlibrary{arrows,positioning,fit,decorations.pathmorphing,shapes.misc}
+\usetikzlibrary{shapes,arrows,positioning,fit,decorations.pathmorphing,shapes.misc}
 \usepackage{babel}
 
 % frenchb (+xspace) settings [[2

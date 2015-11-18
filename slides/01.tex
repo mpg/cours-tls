@@ -9,8 +9,6 @@
 
 \maketitle
 
-\toc
-
 \section{Introduction}
 \tocsect
 
@@ -134,4 +132,123 @@
   Sur le million de sites les plus populaires, en 2014, seuls 45~\%
   accessible en HTTPS\dots
 \end{frame}
+
+
+\section[Couche record]{La couche record}
+\tocsect
+
+\begin{frame}{Les couches de TLS}
+  \begin{center}
+    \renewcommand\arraystretch{1.5}
+    \begin{tabular}{|c|c|c|c|}
+      \hline
+      Handshake & ChangeCipherSpec & Alert &
+      \multicolumn{1}{|c|}{ \color{gray} HTTP, SMTP, etc. } \\ \hline
+      \multicolumn{4}{|c|}{Record} \\ \hline
+      \multicolumn{4}{|c|}{\color{gray} TCP, UDP} \\ \hline
+    \end{tabular}
+  \end{center}
+
+  \begin{itemize}
+    \item Handshake et ChangeCipherSpec (CCS) pour établir la connection
+    \item Alert rarement : problèmes, fin de connection
+    \item Record pour tout : encapsule, chiffre et authentifie les messages
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Structure globale}
+  \begin{description}
+    \item[Type] un octet : CCS = 20, Alert = 21, HS = 22, App = 23
+    \item[Version] deux octets : 0x03 0x03 pour TLS 1.2
+    \item[Length] deux octets : longueur du reste en gros-boutiste (limitée à
+      $2^{14}$ octets, soit 16 Ko).
+  \end{description}
+
+  \begin{center}
+    \renewcommand\arraystretch{1.2}
+    \begin{tabular}{|c|c|c|c|c|p{5em}|}
+      \hline
+      T & VM & Vm & L1 & L2 & \centering ... \cr
+      \hline
+    \end{tabular}
+  \end{center}
+
+  Trois types de chiffrement-authentification :
+  \begin{enumerate}
+    \item Par flot (y compris NULL)
+    \item Par block
+    \item AEAD = authenticated encryption with additional data (seulement TLS
+      1.2)
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Compression}
+  La couche \emph{record} peut compresser avant de chiffrer. Ceci n'est
+  \emph{plus} recommandé.
+
+  \begin{block}{L'attaque CRIME}
+    \begin{itemize}
+      \item Compression Ratio Info-leak Made Easy
+      \item Idée de 2002, exploit (public) en 2012
+      \item Application possible : fuite de cookies sécurisé
+        \begin{enumerate}
+          \item On connait \texttt{Cookie secret=}
+          \item Pour chaque x, on ajoute \texttt{Cookie secret=x} et on mesure
+            la longueur du chiffré
+          \item La valeur qui donne un résultat plus court est la bonne
+          \item On itère pour les caractères suivants
+        \end{enumerate}
+      \item Vole un cookie en 30 secondes
+    \end{itemize}
+  \end{block}
+
+  Dans TLS 1.3, la compression ne sera plus disponible.
+\end{frame}
+
+\begin{frame}{Chiffrement par flot (RC4)}
+  \begin{block}{Chiffrement authentifié}
+    \begin{itemize}
+      \item MAC = HMAC(type, version, longueur, message)
+      \item Chiffré = RC4(message, MAC)
+      \item Envoyé = Chiffré
+      \item L'état RC4 est conservé entre les messages (problème pour DTLS)
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Problème : RC4 n'est plus sûr}
+    \begin{itemize}
+      \item 2013 : RC4 utilisé pour plus de 60~\% des connections HTTPS
+      \item 2013 : Royal Holloway, presque pratique ($2^{24}$ chiffrés)
+      \item début 2015 : RFC 7465 MUST NOT RC4
+      \item mi 2015 : Bar-mitzvah, NOMORE, utilisable en pratique
+      \item courant 2015 : RC4 retiré des navigateurs courants
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Apparté : comment vérifier un MAC}
+  \begin{block}{Méthode naturelle}
+    \begin{enumerate}
+      \item Calculer la bonne valeur
+      \item Comparer avec la valeur reçue avec \texttt{memcmp()}
+    \end{enumerate}
+  \end{block}
+
+  \begin{block}{Attaque par timing}
+    \begin{itemize}
+      \item La durée d'exécution de \texttt{memcmp()} est proportionnelle à la
+        longueur du préfixe correct
+      \item On brute-force octet par octet
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Une solution}
+    \begin{Verbatim}[gobble=4]
+      unsigned char diff = 0;
+      for (size_t i = 0; i < len; i++)
+          diff |= a[i] ^ b[i];
+    \end{Verbatim}
+  \end{block}
+\end{frame}
+
 \end{document}
