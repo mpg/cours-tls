@@ -365,7 +365,7 @@
         \item Le padding soit de longueur un bloc exactement.
       \end{itemize}
     \item Le client innocent chiffre en $C_1, \dots, C_i, \dots, C_n$.
-    \item On envoie au serveur $C_1, \dots, C_i, \dots, C_i$.
+    \item On envoie au serveur $C_1, \dots, C_i, \dots, C_{n-1}, C_i$.
     \item Le serveur innocent nous donne une erreur, ou une fois sur 256, la
       valeur du dernier octet de $\text{AES}^{-1}(C_i)$.
     \item On XORe avec le dernier octet de $C_{i-1}$ pour trouver la valeur de
@@ -475,10 +475,68 @@
     \item Principe : aligner les données pour n'avoir qu'un octet inconnu dans
       le bloc cible, puis le brute-forcer et itérer.
     \item Résolution correcte : passer à TLS 1.1 (70~\% 4 ans après)
-    \item Conseil à l'époque : utiliser RC4 à la place ; plus possible\dots
+    \item Conseil à l'époque : utiliser RC4 à la place\dots oups !
     \item Contre-mesure pratique : $1/n-1$ record splitting
     \item Premier exploit médiatisé utilisant un MitB, a ouvert la voie
   \end{itemize}
+\end{frame}
+
+\begin{frame}{Authenticated Encryption with Additional Data}
+  \begin{block}{Motivation}
+    \begin{itemize}
+      \item Le choix de MtE au lieu de EtM est un problème de
+        \emph{composition} de primitive cryptographiques (chiffre et MAC)
+      \item Problème de crypto, pas de chaque protocole
+      \item Une API unifiée permet ceci et offre plus de liberté
+    \end{itemize}
+  \end{block}
+
+  \begin{description}
+    \item[Avant] Plusieurs étapes définies par TLS :\\
+      MAC = HMAC(clé HMAC, métadonnées, message)\\
+      padding = cf plus haut\\
+      Sortie = AES-CBC(clé AES, IV, message, MAC, padding)\\
+    \item[Après] Sortie = AEAD(clé, nonce, message, métadonnés)
+  \end{description}
+
+  Disponible dans TLS depuis TLS 1.2.
+\end{frame}
+
+\begin{frame}{L'API AEAD (RFC 5116)}
+  \begin{block}{Entrées}
+    \begin{itemize}
+      \item Une clé secret unique (générée uniformément au hasard)
+      \item Un nonce : ne doit \emph{jamais} être réutilisé avec la même clé
+      \item Le message à (dé)chiffrer
+      \item Des données supplémentaires authentifiées mais pas chiffrées
+    \end{itemize}
+  \end{block}
+  \begin{block}{Sortie}
+    \begin{itemize}
+      \item Soit une erreur (le chiffré n'est pas authentique)
+      \item Soit le message (dé)chiffré
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{En pratique}
+  \begin{block}{AES-GCM}
+    \begin{itemize}
+      \item Galois/Counter Mode (2005)
+      \item Chiffrement avec AES en mode compteur
+      \item Authentification utilisant la multiplication dans un corps fini
+      \item Standard, preuve de sécurité, recommandé (Suite B, NIST, IETF).
+      \item Potentiellement très rapide, encore plus avec AES-NI
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{AES-CCM}
+    Comparable, moins rapide mais implémentation plus compacte.
+  \end{block}
+
+  \begin{block}{Nonce}
+    En pratique, utiliser le compteur de \emph{records} TLS.
+  \end{block}
 \end{frame}
 
 \end{document}
