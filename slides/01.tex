@@ -39,7 +39,7 @@
     \end{block}
 
     \begin{block}{Tout le reste}<4->
-      Bugs, sécurité du poste local, utilisateurs, etc.
+      Man-in-the-Browser, bugs, sécurité du poste local, utilisateurs, etc.
     \end{block}
 
     \column[t]{.5\textwidth}
@@ -182,7 +182,7 @@
   \end{enumerate}
 \end{frame}
 
-\begin{frame}{Compression}
+\begin{frame}{Compression (1)}
   La couche \emph{record} peut compresser avant de chiffrer. Ceci n'est
   \emph{plus} recommandé.
 
@@ -203,6 +203,26 @@
   \end{block}
 
   Dans TLS 1.3, la compression ne sera plus disponible.
+\end{frame}
+
+\begin{frame}{Compression (2)}
+  \begin{block}{Conditions pour CRIME}
+    \begin{enumerate}
+      \item L'attaquant peut injecter du texte clair (JS, actif)
+      \item L'attaquant peut observer le chiffré (réseau, passif)
+      \item La compresssion TLS doit être activée
+    \end{enumerate}
+  \end{block}
+
+  \begin{block}{Variantes}
+    \begin{description}
+      \item[TIME] Timing Info-leak Make Easy : supprime la condition 2, mesure
+        le temps à la place
+      \item[BREACH] Browser Reconnaissance \& Exfiltration via Adaptive
+        Compression of Hypertext : exploite la compression HTTP, plus
+        répandue.
+    \end{description}
+  \end{block}
 \end{frame}
 
 \begin{frame}{Chiffrement par flot (RC4)}
@@ -367,11 +387,11 @@
   \begin{block}{Historique}
     \begin{itemize}
       \item 1999 : problème résolu dans TLS 1.0
-      \item 2002 : principe de l'oracle publié (Vaudenay)
+      \item 2003 : principe de l'oracle connu
       \item 2015 : exploit pratique publié, accélère la mort de SSL 3.0
+        (Padding Oracle On Downgraded Legacy Encryption)
     \end{itemize}
   \end{block}
-
 \end{frame}
 
 \end{document}
