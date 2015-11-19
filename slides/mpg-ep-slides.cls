@@ -1,3 +1,6 @@
+% Written in 2012-2015 by Manuel Pégourié-Gonnard
+% SPDX-License-Identifier: CC-BY-SA-4.0
+
 % personal class for Epita TLS slides [[2
 %
 \NeedsTeXFormat{LaTeX2e}
@@ -29,7 +32,19 @@
 % pour avoir les vignettes de Singapore sans sous-sections
 \setcounter{subsection}{1}
 \usepackage{remreset}
-\makeatletter \@removefromreset{subsection}{section} \makeatother
+\@removefromreset{subsection}{section}
+
+% expand beamer title page with license [[2
+%
+\newcommand\@license{}
+\newcommand\license[1]{\def\@license{#1}}
+\newcommand\lictitle{%
+  \frame{%
+    \titlepage
+    \vspace{1em}
+    \centering \footnotesize \@license \par
+  }%
+}
 
 % load various useful packages [[2
 %
