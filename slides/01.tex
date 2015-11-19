@@ -394,4 +394,91 @@
   \end{block}
 \end{frame}
 
+\begin{frame}{L'oracle de Vaudenay et Lucky 13}
+  \begin{block}{Vaudenay}
+    \begin{itemize}
+      \item Premier oracle de padding contre CBC publié (2002)
+      \item POODLE en est une variante plus simple
+      \item Fonctionne \emph{presque} contre TLS 1.0+ (alertes chiffrées)
+      \item Première variante par timing : 2003
+      \item Contre-mesure 1 : toujours vérifier le MAC
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Lucky 13}
+    \begin{itemize}
+      \item Autre variante utilisant le timing et un effet de seuil
+      \item Contre-mesure 2 : toujours MACer la même longueur
+      \item Contre-mesure délicate à implémenter
+        (cf \emph{Lucky 13 strikes back} : cache cross-VM)
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Encrypt-then-MAC}
+  \begin{block}{Réparer CBC}
+    \begin{itemize}
+      \item Cause commune à l'attque de Vaudenay, POODLE et Lucky 13 : le
+        padding n'est pas authentifié.
+      \item Solution : utiliser Encrypt-then-MAC (RFC 7366)
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Historique}
+    \begin{itemize}
+      \item TLS 1.0 arrête POODLE
+      \item Le RFC 5246 recommande la contre-mesure 1, et envisage la 2 mais
+        pense qu'elle n'est pas nécessaire
+      \item CBC avec EtM comme dans TLS 1.0 a une preuve de sécurité, qui ne
+        prend pas en compte les canaux auxiliaires
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Vecteur d'initialisation}
+  \includegraphics<1>[width=\textwidth]{cbc-enc}
+  \begin{description}
+    \item[TLS 1.0-] Le tout premier est calculé au même moment que la clé,
+      puis on réutilise le dernier bloc chiffré
+    \item[TLS 1.1+] Chaque IV est aléatoire et transmis explicitement
+  \end{description}
+\end{frame}
+
+\begin{frame}{Blockwise attack}
+  \begin{block}{Principe}
+    \begin{enumerate}
+      \item Rappel/notations $C_i = E( C_{i-1} \oplus P_i )$ ; on suppose $i <
+        j$.
+      \item En conséquence $C_i = C_j \Longleftrightarrow C_{i-1} \oplus P_i =
+        C_{j-1} \oplus P_j$.
+      \item Supposons que pour certains $j$, l'attaquant peut choisir $P_j$
+        à un moment où $C_k$ est connu pour tout $k < j$.
+      \item L'attaquant veut tester un candidat $P'_i$ pour la valeur de $P_i$.
+      \item On choisit $P_j = P'_i \oplus C_{i-1} \oplus C_{j-i}$ et
+        on regarde si $C_i = C_j$.
+    \end{enumerate}
+  \end{block}
+
+  \begin{block}{Analyse}
+    \begin{itemize}
+      \item Publiée en 2004, corrigée en 2006 dans TLS 1.1 (point 3).
+      \item Il faut deviner un bloc entier : la force brute ne marche pas
+      \item Contourne la preuve de sécurité de CBC (CPA2 \textrightarrow{}
+        BCPA2)
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{BEAST}
+  \begin{itemize}
+    \item 2011 : Browser Exploit Against SSL/TLS
+    \item Principe : aligner les données pour n'avoir qu'un octet inconnu dans
+      le bloc cible, puis le brute-forcer et itérer.
+    \item Résolution correcte : passer à TLS 1.1 (70~\% 4 ans après)
+    \item Conseil à l'époque : utiliser RC4 à la place ; plus possible\dots
+    \item Contre-mesure pratique : $1/n-1$ record splitting
+    \item Premier exploit médiatisé utilisant un MitB, a ouvert la voie
+  \end{itemize}
+\end{frame}
+
 \end{document}
