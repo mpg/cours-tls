@@ -551,4 +551,45 @@
   \end{block}
 \end{frame}
 
+
+\section[Point]{Faisons le point}
+\tocsect
+
+\begin{frame}{Historique}
+  \begin{tabular}{rlll}
+    \toprule
+    Année & Nom & Conditions & exploit \\
+    \midrule
+    2002 & Vaudenay   & TLS 1.0- + accès aux alertes    & non \\
+    2002 & CBCATT     & TLS 1.0- + CPA + chance         & non \\
+    2003 & CBCTIME    & CPA                             & non \\
+    2011 & BEAST      & MitB + MitM                     & oui \\
+    2012 & CRIME      & compr TLS + MitB + écoute       & oui \\
+    2013 & TIME       & compr TLS + MitB + temps        & oui \\
+    2013 & BREACH     & compr HTTP + MitB + écoute      & oui \\
+    2013 & RC4 biases & session multiples               & partiel \\
+    2015 & POODLE     & SSL 3.0, MitB + MitM            & partiel \\
+    2015 & RC4        & sessions multiples              & oui \\
+    \bottomrule
+  \end{tabular}
+\end{frame}
+
+\begin{frame}{Références}
+  \begin{block}{Méta-références}
+    \begin{itemize}
+      \item \url{https://tools.ietf.org/html/rfc7457}
+      \item \url{https://www.ietf.org/proceedings/89/slides/slides-89-irtfopen-1.pdf}
+      \item \url{https://eprint.iacr.org/2013/049.pdf} section III
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Références spécifiques complémentaires}
+    \begin{itemize}
+      \item \url{https://www.openssl.org/~bodo/ssl-poodle.pdf}
+      \item \url{https://www.rc4nomore.com/}
+      \item \url{http://www.imperva.com/docs/HII_Attacking_SSL_when_using_RC4.pdf}
+    \end{itemize}
+  \end{block}
+\end{frame}
+
 \end{document}
