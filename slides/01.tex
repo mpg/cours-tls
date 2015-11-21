@@ -3,14 +3,17 @@
 
 \documentclass{mpg-ep-slides}
 
-\author[MPG]{Manuel Pégourié-Gonnard}
+\author[MPG]{Manuel Pégourié-Gonnard\\
+  \href{mailto:mpg@elzevir.fr}{{mpg@elzevir.fr}}
+}
 \institute[ARM]{\normalsize ARM France - IoT - mbed TLS}
-\title{Cours de cryptologie appliquée de l'EPITA \\ TLS - partie 1}
-\date{19 novembre 2015}
 \license{%
   \url{https://github.com/mpg/cours-tls} \\[.5ex]
   \href{https://creativecommons.org/licenses/by-sa/4.0/}{CC-BY-SA 4.0}
 }
+
+\title{Cours de cryptologie appliquée de l'EPITA \\ TLS - partie 1}
+\date{19 novembre 2015}
 
 \begin{document}
 
@@ -239,7 +242,7 @@
 \begin{frame}{Chiffrement par flot (RC4)}
   \begin{block}{Chiffrement authentifié}
     \begin{itemize}
-      \item MAC = HMAC(type, version, longueur, message)
+      \item MAC = HMAC(\no séquence, type, version, longueur, message)
       \item Chiffré = RC4(message, MAC)
       \item Envoyé = Chiffré
       \item L'état RC4 est conservé entre les messages (problème pour DTLS)
@@ -257,7 +260,7 @@
   \end{block}
 \end{frame}
 
-\begin{frame}[containsverbatim]{Apparté : comment vérifier un MAC}
+\begin{frame}[containsverbatim]{Aparté : comment vérifier un MAC}
   \begin{block}{Méthode naturelle}
     \begin{enumerate}
       \item Calculer la bonne valeur
@@ -350,7 +353,7 @@
 \begin{frame}{Un oracle de padding : POODLE (1)}
   \begin{block}{Observation clé}
     \begin{itemize}
-      \item Supposons qu'il y a un block complet de padding, chiffré $C_n$.
+      \item Supposons qu'il y a un bloc complet de padding, chiffré $C_n$.
       \item On remplace $C_n$ par un $C'$ quelconque.
       \item Alors le message est accepté ssi $\text{AES}^{-1}(C') \oplus
         C_{n-1}$ se termine par un octet de valeur $15$. (Exercice.)
@@ -433,7 +436,7 @@
 \begin{frame}{Encrypt-then-MAC}
   \begin{block}{Réparer CBC}
     \begin{itemize}
-      \item Cause commune à l'attque de Vaudenay, POODLE et Lucky 13 : le
+      \item Cause commune à l'attaque de Vaudenay, POODLE et Lucky 13 : le
         padding n'est pas authentifié.
       \item Solution : utiliser Encrypt-then-MAC (RFC 7366)
     \end{itemize}
@@ -569,6 +572,7 @@
     \midrule
     2002 & Vaudenay   & TLS 1.0- + accès aux alertes    & non \\
     2002 & CBCATT     & TLS 1.0- + CPA + chance         & non \\
+    2002 & Compression & ?                              & non \\
     2003 & CBCTIME    & CPA                             & non \\
     2011 & BEAST      & MitB + MitM                     & oui \\
     2012 & CRIME      & compr TLS + MitB + écoute       & oui \\
