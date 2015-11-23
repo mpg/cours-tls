@@ -602,19 +602,115 @@
   \end{block}
 \end{frame}
 
-\section[Timing]{Attaques par canaux auxiliaires sur RSA et ECDSA}
+\section[SCA]{Attaques par canaux auxiliaires}
 \tocsect
 
-% principe square-and-multiply, papier practical
-% square-and-always-multipy, still practical
-% caching, branch prediction, securecoding
+\begin{frame}[containsverbatim]{Le problème square-and-multiply}
+  \begin{Verbatim}
+    a = 1
+    for i from 0 to bitlength(b) - 1 do:
+        if b_i == 1 then:
+            a = a * g
+        a = a^2
+  \end{Verbatim}
+  \begin{itemize}
+    \item RSA, (EC)DH et ECDSA comportent tous une étape cruciale qui
+      s'implémente naïvement par square-and-multiply
+    \item Le temps d'éxécution, à taille d'exposant donné, fuite directement
+      le poids de Hamming de l'exposant secret
+    \item Si on la corrige en square-and-multiply-always, si on ne fait pas
+      gaffe on fuite la longueur de l'exposant secret (pour ECDSA c'est
+      catastrophique)
+    \item Des attaques plus sophistiquées peuvent observer les variations en
+      fonction des valeurs de $g$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{C'est exploitable en pratique}
+  \begin{description}
+    \item[1996] « Timing attacks on [...] RSA [...] » en local uniquement
+    \item[2003] « Remote timing attacks are practical »
+      \begin{itemize}
+        \item Récupère la clé RSA complète du serveur
+        \item Mis en pratique sur un réseau local
+      \end{itemize}
+    \item[2011] « Remote timing attacks are still practical »
+      \begin{itemize}
+        \item Récupère une clé ECDSA (sur certaines courbes dans OpenSSL)
+        \item Mis en pratique sur un réseau local
+      \end{itemize}
+    \item[2009] « Opportunities and limits of remote timing attacks » : 100 ns
+      sur un réseau local, 15-100 micro secondes sur l'internet
+  \end{description}
+\end{frame}
+
+\begin{frame}{Autres attaques et défenses}
+  \begin{block}{Autres canaux auxiliaires}
+    \begin{itemize}
+      \item Attaque par cache, en local ou à distance
+      \item Avec un peu d'accès physique : \\
+        \url{https://www.tau.ac.il/~tromer/acoustic/} \\
+        \url{https://www.tau.ac.il/~tromer/handsoff/}
+      \item Avec plus d'accès physique : puissance, ondes EM, etc.
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Défense de base : codage en temps constant}
+    \begin{itemize}
+      \item Pas de branche qui dépend d'une donnée secrète
+      \item Pas d'accès mémoire dont l'adresse dépend d'un secret
+      \item Pas d'instruction à temps variable sur des secrets
+      \item \url{https://cryptocoding.net/}
+    \end{itemize}
+  \end{block}
+
+  Autre stratégie de défense : le \emph{blinding}
+\end{frame}
 
 \section[Échanges]{Autres échanges de clé}
 \tocsect
 
-% *-PSK
-% DH_anon, DSA, etc?
-% export : FREAK, Logjam 2
+\begin{frame}{Autres échanges de clé}
+  \begin{block}{Clé pré-partagé : PSK}
+    \begin{itemize}
+      \item Sans crypto asymétrique, pour les environnement \emph{très}
+        restreints
+      \item Plus de travail pour la gestion des clés (il FAUT une clé par
+        client)
+      \item Pas de forward secrecy
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Divers, peu utilisés}
+    \begin{itemize}
+      \item (EC)DH non-ephemère : léger gain de perf, perte de la FS
+      \item DH_anon : léger gain de perf, vulnérable à un MitM
+      \item DSS : aka DSA, nécessite certificat spécifique
+      \item RSA_export, DH_export : limité à 512 bits, cf diapo suivante
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Attaques par downgrade sur les suites export}
+  \begin{block}{FREAK (2015)}
+    \begin{enumerate}
+      \item L'attaquant modifie le ClientHello : RSA_export seulement
+      \item Le serveur offre alors une clé RSA de 512 bits
+      \item La clé RSA de 512 bits est cassée par l'attaquant (100\$)
+      \item L'attaquant peut modifier les Finished pour effacer ses traces
+      \item Solution évidente : désaciver RSA_export !
+      \item C'est lent : \url{https://freakattack.com/}
+    \end{enumerate}
+  \end{block}
+
+  \begin{block}{Logjam (2015)}
+    \begin{itemize}
+      \item Attaque similaire avec DH_export
+      \item Un pré-calcul pour un $p$ donné permet de casser DH en direct
+        pendant la poignée de mains
+    \end{itemize}
+  \end{block}
+\end{frame}
 
 \section[Attaques]{Autres attaques}
 \tocsect
