@@ -15,6 +15,10 @@
 \title{Cours de cryptologie appliquée de l'EPITA \\ TLS - partie 2}
 \date{23 novembre 2015}
 
+\DeclareMathOperator\RSA{RSA}
+\DeclareMathOperator\RSAPKCS{RSA\_PKCS1\_15}
+\DeclareMathOperator\PKCS{PKCS1\_15}
+
 \begin{document}
 
 \lictitle
@@ -230,10 +234,117 @@
 \section[RSA]{Transport de clé RSA}
 \tocsect
 
-% principe
-% Aperçu Bleichenbacher
-% Évocation Klima
-% Concept de PFS
+\begin{frame}[containsverbatim]{Principe}
+  \begin{Verbatim}[gobble=4, fontsize=\small]
+    ClientHello          -------->
+                                            ServerHello
+                                            Certificate
+                         <--------      ServerHelloDone
+    ClientKeyExchange
+    [ChangeCipherSpec] ...
+
+      struct {
+          ProtocolVersion client_version;
+          opaque random[46];
+      } PreMasterSecret;
+      struct {
+          public-key-encrypted PreMasterSecret pre_master_secret;
+      } EncryptedPreMasterSecret;
+      struct {
+          EncryptedPreMasterSecret;
+      } ClientKeyExchange;
+  \end{Verbatim}
+\end{frame}
+
+\begin{frame}{L'attaque de Bleichenbacher (1)}
+  \begin{block}{Oracle de padding sur PKCS\#1 v1.5}
+    \begin{itemize}
+      \item Rappel : $\RSAPKCS(m) =
+        \RSA(\PKCS(m))$
+      \item \(
+          \PKCS(m) =
+          \begin{array}{|c|c|c|c|c|} \hline
+            \texttt{00} & \texttt{02} & \text{pad} & \texttt{00} & m \\ \hline
+          \end{array}
+        \)
+      \item Autrefois, les serveurs envoyaient une erreur spécifique si le
+        padding était incorrect
+      \item L'attaquant envoie un chiffré $c'$ arbitraire, observe la réponse
+      \item Si pas d'erreur de padding (une fois sur environ $2^{16}$), alors
+        $m' = \RSA^{-1}(c')$ commence par \texttt{00 02}.
+      \item Autrement dit, dans ce cas,
+        $2 \cdot 2^{l-16} \le m' < 3 \cdot 2^{l-16}$
+        où $l$ est la longueur en bits de la clé.
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Propriété algébrique de RSA}
+    RSA est un homomorphisme : $\RSA(m_1 m_2) = \RSA(m_1) \RSA(m_2)$
+  \end{block}
+\end{frame}
+
+\begin{frame}{L'attaque de Bleichenbacher (2)}
+  \begin{block}{Principe de l'attaque}
+    \begin{itemize}
+      \item On connaît $c$ et on va trouver $m$ en consultant l'oracle
+      \item On pose $B = 2^{l-16}$, on sait déjà que $m \in [2B, 3B-1]$
+      \item On cherche $s_1$ tel que $c \cdot s_1^e$ soit
+        accepté par l'oracle ; on a
+        \begin{align}
+          m \cdot s_1 \mod n
+          & \in [2B, 3B-1]
+          \\ m \cdot s_1
+          & \in \cup_{r \in \mathbb N} [2B + rn, 3B-1 + rn]
+          \\ m
+          & \in \cup_{r \in \mathbb N}
+          \left[ \frac{2B + rn}{s_1}, \frac{3B-1 + rn}{s_1} \right]
+          \cap [2B, 3B-1]
+        \end{align}
+      \item On itère (voir gribouillis au tableau)
+      \item Au total quelques millions de requêtes suffisent : faisable
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{L'attaque de Bleichenbacher (3)}
+  \begin{block}{Comment traiter EncryptedPreMasterSecret}
+    \begin{itemize}
+      \item Naïf : \only<2->{\st}{si mauvais padding, erreur} ;
+        \only<3->{\st}{si mauvaise version, erreur}
+      \item<2-> Attaque de Bleichenbacher (1998) : oracle de padding
+      \item<2-> TLS 1.0 : Si mauvais padding, on génère un PMS aléatoire,
+        erreur reportée au Finished ; (\only<3->{\st}{si mauvaise version
+          erreur})
+      \item<3-> Attaque de Klima (2003) : oracle de version
+      \item<3-> TLS 1.1 : \only<4->{\st}{Si mauvais padding, on génère un
+          PMS aléatoire et on l'utilise} ; si mauvaise version pareil
+      \item<4-> TLS 1.2 : On génère un PMS aléatoire ; si mauvais padding ou
+        mauvaise version, ou l'utilise
+      \item<4-> Usenix 2014 : new Bleichenbacher side channels
+      \item<4-> Voir \texttt{ssl\_parse\_encrypted\_pms()} dans mbed TLS
+      \item<5-> La « vraie » solution serait d'utiliser OAEP
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Concept de (Perfect) Forward Secrecy}
+  \begin{block}{Problème avec le transport de clé RSA}
+    \begin{itemize}
+      \item Un attaquant enregistre plein de communications
+      \item Plus tard, il obtient la clé RSA du serveur (faille sur le
+        serveur, national security letter, factorisation, \dots)
+      \item Il peut alors déchiffer toutes les communications enregistrées
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Forward Secrecy}
+    \begin{itemize}
+      \item C'est quand l'attaque précédente n'est pas possible
+        \texttt{\string:-)}
+      \item Offerte par les suites basées sur Diffie-Hellman
+    \end{itemize}
+  \end{block}
+\end{frame}
 
 \section[(EC)DHE]{Échange de clé Diffie-Hellman (elliptique)}
 \tocsect
@@ -279,5 +390,9 @@
 
 \section{Conclusion}
 \tocsect
+
+% rappel : primitives OK et cassées, tailles de clé
+% compromis : sécurité vs interop, perf/cout, admin, etc
+% aperçu TLS 1.3
 
 \end{document}

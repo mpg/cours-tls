@@ -50,7 +50,7 @@
 %
 \usepackage{mathtools, mathstyle}
 \usepackage{ifmtarg, fixltx2e, xargs, xspace, cmdstring, ted, etex}
-\usepackage{booktabs, fancyvrb}
+\usepackage{booktabs, fancyvrb, soulutf8}
 \usepackage{tikz}
 \usetikzlibrary{shapes,arrows,positioning,fit,decorations.pathmorphing,shapes.misc}
 \usepackage{babel}
