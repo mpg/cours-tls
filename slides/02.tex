@@ -50,7 +50,7 @@
   \begin{block}{Record}
     \begin{itemize}
       \item \emph{Confidentialité} et \emph{intégrité} des données
-      \item Crypto symétrique uniquement
+      \item Crypto symmétrique uniquement
     \end{itemize}
   \end{block}
 \end{frame}
@@ -477,13 +477,130 @@
 \section[PKIX]{Infrastructure à clé publique X.509}
 \tocsect
 
-% principe chaine, racine de confiance
-% la honte : validation de la chaine, validation du nom
-% récovation : CRL, OCSP, CRLsets
-% incidents Comodo, ANSSI, Symantec, etc TBTF
-% principe CT
-% HPKP
-% DANE
+\begin{frame}{Principe}
+  \begin{itemize}
+    \item Le serveur présente un certificat contenant une clé publique et une
+      identité (et des méta-donnés)
+    \item Il prouve qu'il possède la clé privée associée en déchiffrant le
+      PMS ou en signant le ServerKeyEchange avec cette clé
+    \item L'association entre l'identité et la clé est garantie par une
+      autorité de certification (CA) qui a signé le certificat
+    \item Cette CA peut elle-même avoir été signée par une autre CA, mais on
+      ne fait que déplacer le problème
+    \item Au bout d'un moment on doit arriver à une racine de confiance
+    \item Il suffit de distribuer quelques racines de confiance avec les
+      navigateurs pour authentifier des millions de sites web
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Premiers problèmes}
+  \begin{block}{Il faut vérifier les certificats (nom et signature)}
+    \begin{itemize}
+      \item Le nom dans le certificat doit correspondre au nom attendu
+      \item Le certificat doit être signé correctement
+      \item La liste des racines de confiance doit être censée et à jour
+      \item Certaines implémentations ne vérifient rien par défaut
+      \item Certains développeurs sont juste paresseux, ou se disent que c'est
+        pas grave pour les tests, puis oublient en prod
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Aparté : les trois états, dont un maudit, en sécurité}
+    \begin{overprint}
+      \begin{enumerate}
+        \item Ça ne marche pas (et c'est pas sécurisé)
+        \item \only<2->{\st}{Ça marche mais c'est pas sécurisé}
+          \only<2->{JAMAIS! mieux vaut 1.}
+        \item Ça marche et c'est sécurisé
+      \end{enumerate}
+    \end{overprint}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Le problème de la révocation}
+  Quand une clé est compromise, le certificat associé doit être révoqué.
+
+  \begin{block}{Les solutions qui marchent moyen}
+    \begin{itemize}
+      \item Certificate revocation list (CRL) : volume, latence
+      \item Online Certificate Status Protocol : que faire si le serveur ne
+        répond pas ? Attaque ou simple problème de disponibilité ?
+      \item Les CAs n'ont pas d'incitation économique directe à investir
+        beaucoup ici dans la révocation
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{De meilleures solution partiellement déployées}
+    \begin{itemize}
+      \item OCSP stapling : le serveur attache une réponse OCSP dans la
+        poignée de main TLS
+      \item CRLsets : les fabricants de navigateurs distribuent des diffs de
+        CRL (Chrome)
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Les autorités « de confiance »}
+  \begin{block}{Le maillon faible}
+    \begin{itemize}
+      \item Plus d'une centaine d'autorités dans les navigateurs
+      \item Chacune peut certifier n'importe quel nom
+      \item Le total est aussi fiable que la \emph{moins} fiable des racines !
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Les autorités ne sont pas toujours fiables}
+    \begin{itemize}
+      \item En 2011, DigiNotar est compromis et émet des centaines de
+        certificats frauduleux, qui seront utilisé pour MitM plus de 300000
+        utilisateurs iraniens de Gmail.
+      \item Racines retirées des navigateurs, compagnie en faillite
+      \item Plusieurs incidents similaires au cours des années
+      \item Problème : certains acteurs sont \emph{too big to fail}
+      \item Problème : a-t-on détecté tous les incidents ?
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Solutions partielles émergentes (1)}
+  \begin{block}{DANE (RFC 6698)}
+    \begin{itemize}
+      \item Distribution de certificates ou clés via le DNS
+      \item S'ajoute aux CA traditionnelles ou les remplace
+      \item Problème majeur : dépend de DNSSEC !
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Certificate Transparency (RFC 6962)}
+    \begin{itemize}
+      \item Tous les certificats sont publiés dans un journal append-only
+        vérifiable (arbre de Merkle)
+      \item Les serveurs doivent fournit des preuves d'inclusion, ou bien les
+        clients peuvent bavarder entre eux
+      \item Tout le monde peut inspecter les journaux
+      \item N'évite pas les problèmes, permet seulement de les détecter
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Solutions partielles émergentes (2)}
+  \begin{block}{HTTP Public-Key Pinning (7469)}
+    \begin{itemize}
+      \item Le serveur peut imposer des clés qui devront être présentes dans
+        la chaine lors des prochaines connections
+      \item Complique l'administration lors du changement des clés
+      \item Ne marche que pour HTTPS
+      \item Ne sécurise pas la première connection
+      \item En fait si pour certains sites et certains navigateurs (pinning
+        pré-configurés)
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Rapports de forces}
+    Exemple récent : l'affaire Google vs Symantec
+    \url{https://googleonlinesecurity.blogspot.fr/2015/10/sustaining-digital-certificate-security.html}
+  \end{block}
+\end{frame}
 
 \section[Timing]{Attaques par canaux auxiliaires sur RSA et ECDSA}
 \tocsect
