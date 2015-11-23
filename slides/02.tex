@@ -349,17 +349,130 @@
 \section[(EC)DHE]{Échange de clé Diffie-Hellman (elliptique)}
 \tocsect
 
-% rappel RSA/DL et ECC
-% principe DHE-RSA, ECDHE-RSA, ECDHE-ECDSA
-% pb taille de paramètre FFDH - Logjam 1
+\begin{frame}{Rappel : crypto sur les courbes elliptiques}
+  \begin{columns}
+    \column[t]{0.5\textwidth}
+    \begin{block}{Log discret dans les corps finis (FFDL) \strut}
+      \begin{itemize}
+        \item $s = g^a \mod p$, trouver $a$
+        \item Échange de clé : (FF)DH
+        \item Signatures : DSA
+        \item Complexité $\approx 2^{c \sqrt[3]{n}}$
+      \end{itemize}
+    \end{block}
 
-\section[Timing]{Attaques par timing sur RSA et ECDSA}
-\tocsect
+    \begin{block}{Factorisation des entiers}
+      \begin{itemize}
+        \item $n = pq$, trouver $p$ et $q$
+        \item Signature : RSA
+        \item Chiffrement : RSA
+        \item Complexité $\approx 2^{c \sqrt[3]{n}}$
+      \end{itemize}
+    \end{block}
 
-% principe square-and-multiply, papier practical
-% square-and-always-multipy, still practical
-% aparté : ECDSA PS3, deterministic ECDSA
-% caching, branch prediction, securecoding
+    \column[t]{0.5\textwidth}
+    \begin{block}{Log discret dans les courbes elliptiques (ECDL) \strut}
+      \begin{itemize}
+        \item $S = a \cdot G \in E$, trouver $a$
+        \item Échange de clé : ECDH
+        \item Signatures : ECDSA
+        \item Complexité $\approx 2^{n / 2}$
+      \end{itemize}
+    \end{block}
+
+    \begin{block}{Tailles équivalentes}
+      \begin{tabular}{rrr}
+        \toprule
+        Sym. & FF/RSA & ECC \\
+        \midrule
+        112 &  2432 & 224 \\
+        128 &  3248 & 256 \\
+        256 & 15424 & 512 \\
+        \bottomrule
+      \end{tabular}
+    \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[containsverbatim]{DHE-RSA, ECDHE-RSA, ECDHE-ECDSA}
+  \begin{Verbatim}[gobble=4, fontsize=\small]
+    ClientHello (+ext)   -------->
+                                            ServerHello
+                                            Certificate
+                                      ServerKeyExchange
+                         <--------      ServerHelloDone
+    Certificate
+    ClientKeyExchange
+    [ChangeCipherSpec] [...]
+  \end{Verbatim}
+  \begin{itemize}
+    \item ServerKeyExchange contient :
+      \begin{itemize}
+        \item les paramètres choisis ($p$ et $g$ pour FFDH, ou un identifiant
+          de courbe elliptique)
+        \item la part du serveur $g^a$ ou $aG$
+        \item la signature du tout (plus les random) par le clé associée au
+          certificat du serveur (authentification du serveur)
+      \end{itemize}
+    \item ClientKeyExchange contient la part $g^b$ ou $bG$ du client
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Propriétés de (EC)DHE-(RSA|ECDSA)}
+  \begin{itemize}
+    \item Les trois échanges offrent la \emph{forward secrecy}
+    \item Le « E » de (EC)DHE signifie éphémère : les parties génèrent un
+      nouvel exposant secret à chaque fois
+    \item DHE-RSA est environ trois fois plus coûteux que RSA côté serveur, et
+      20 fois plus côté client
+    \item ECDHE-RSA est seulement 15\% plus cher que RSA côté serveur (3 fois
+      côté client)
+    \item Chiffres de 2011, les courbes elliptiques progressent encore
+    \item ECDSA est moins cher que RSA côté serveur, mais plus cher côté client
+    \item ECDHE-(RSA|ECDSA) sont les plus recommandés
+    \item ECHDE-RSA est actuellement le plus courant car les certificats ECDSA
+      ne sont pas disponibles depuis longtemps
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Problèmes avec FFDH (1)}
+  \begin{block}{Validation des paramètres}
+    \begin{itemize}
+      \item Un serveur malicieux peut choisir des mauvais paramètres
+      \item Le client ne peut pas les valider (trop coûteux)
+      \item Utilisé dans une variante de l'attaque \emph{triple handshake}
+      \item Solution : draft-ietf-tls-negotiated-ff-dhe
+    \end{itemize}
+  \end{block}
+  \begin{block}{Taille des paramètres}
+    \begin{itemize}
+      \item Certains clients (Java 6) ne supportent pas plus de 1024 bits
+      \item Le serveur ne peut pas savoir
+      \item Compromis sécurité-interopérabilité
+      \item Solution : draft-ietf-tls-negotiated-ff-dhe
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Problèmes avec FFDH (2)}
+  \begin{block}{Réutilisation des paramètres}
+    \begin{itemize}
+      \item Après un gros précalcul pour un $p$ donné, casser des log discrets
+        $\mod p$ devient très rapide (cf. \url{https://weakdh.org/} point 2)
+      \item C'est probablement tout juste possible pour des gouvernements de
+        casser quelques $p$ de 1024 bits.
+      \item Beaucoup de serveurs ont un $p$ de 1024 bit en commun :
+        \begin{itemize}
+          \item Le plus courant est utilisé par 18\% des serveurs HTTPS
+          \item Les deux plus courants donnent 60\% des VPN et 26\% des
+            serveurs SSH
+        \end{itemize}
+      \item Solutions : utiliser un $p$ assez grand, ou unique
+    \end{itemize}
+  \end{block}
+  Plus généralement sur les attaques groupées, voir :
+  \url{http://blog.cr.yp.to/20151120-batchattacks.html}
+\end{frame}
 
 \section[PKIX]{Infrastructure à clé publique X.509}
 \tocsect
@@ -371,6 +484,13 @@
 % principe CT
 % HPKP
 % DANE
+
+\section[Timing]{Attaques par canaux auxiliaires sur RSA et ECDSA}
+\tocsect
+
+% principe square-and-multiply, papier practical
+% square-and-always-multipy, still practical
+% caching, branch prediction, securecoding
 
 \section[Échanges]{Autres échanges de clé}
 \tocsect
@@ -384,6 +504,7 @@
 
 % stripping (HTTP, STARTTLS) - HSTS
 % Renego (extension) - 3HS (session hash)
+% aparté : ECDSA PS3, deterministic ECDSA
 % Impl: debian/OpenSSL, heartbleed, CCS, goto fail
 % Impl 2: memset(0) X.509
 % DoS (DTLS - DDoS amplification)
