@@ -1,0 +1,283 @@
+% Written in 2015 by Manuel Pégourié-Gonnard
+% SPDX-License-Identifier: CC-BY-SA-4.0
+
+\documentclass{mpg-ep-slides}
+
+\author[MPG]{Manuel Pégourié-Gonnard\\
+  \href{mailto:mpg@elzevir.fr}{{mpg@elzevir.fr}}
+}
+\institute[ARM]{\normalsize ARM France - IoT - mbed TLS}
+\license{%
+  \url{https://github.com/mpg/cours-tls} \\[.5ex]
+  \href{https://creativecommons.org/licenses/by-sa/4.0/}{CC-BY-SA 4.0}
+}
+
+\title{Cours de cryptologie appliquée de l'EPITA \\ TLS - partie 2}
+\date{23 novembre 2015}
+
+\begin{document}
+
+\lictitle
+
+\section[Handshake]{Poignée de mains : généralités}
+\tocsect
+
+\begin{frame}{Rappel}
+  % cf frame "Les couches de TLS" partie 1
+  \begin{center}
+    \renewcommand\arraystretch{1.5}
+    \begin{tabular}{|c|c|c|c|}
+      \hline
+      Handshake & ChangeCipherSpec & Alert &
+      \multicolumn{1}{|c|}{ \color{gray} HTTP, SMTP, etc. } \\ \hline
+      \multicolumn{4}{|c|}{Record} \\ \hline
+      \multicolumn{4}{|c|}{\color{gray} TCP, UDP} \\ \hline
+    \end{tabular}
+  \end{center}
+
+  \begin{block}{Handshake}
+    \begin{itemize}
+      \item Négociation \emph{fiable} des paramètres
+      \item Établissement de clé de session \emph{secrètes}
+      \item \emph{Authentification} du serveur, voire du client
+      \item Crypto (en général) asymétrique + symétrique
+    \end{itemize}
+  \end{block}
+  \begin{block}{Record}
+    \begin{itemize}
+      \item \emph{Confidentialité} et \emph{intégrité} des données
+      \item Crypto symétrique uniquement
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Flot général}
+  \begin{Verbatim}[gobble=4, fontsize=\small]
+    ClientHello          -------->
+                                            ServerHello
+                                           Certificate*
+                                     ServerKeyExchange*
+                                    CertificateRequest*
+                         <--------      ServerHelloDone
+    Certificate*
+    ClientKeyExchange
+    CertificateVerify*
+    [ChangeCipherSpec]
+    Finished#            -------->
+                                     [ChangeCipherSpec]
+                         <--------            Finished#
+    Application Data#    <------->    Application Data#
+  \end{Verbatim}
+  \texttt{*} = optionel, \texttt{\#} = chiffré
+\end{frame}
+
+\begin{frame}[containsverbatim]{Encodage des messages}
+  \begin{center}
+    \renewcommand\arraystretch{1.2}
+    \begin{tabular}{|c|c|c|c|p{8em}|}
+      \hline
+      T & L1 & L2 & L3 & \centering \emph{(contenu)} \cr
+      \hline
+    \end{tabular}
+  \end{center}
+
+  \begin{Verbatim}[gobble=4, fontsize=\footnotesize]
+    struct {
+        HandshakeType msg_type;    /* handshake type */
+        uint24 length;             /* bytes in message */
+        select (HandshakeType) {
+            case client_hello:        ClientHello;
+            case server_hello:        ServerHello;
+            [...]
+        } body;
+    } Handshake;
+
+    enum {
+        client_hello(1), server_hello(2), [...]
+        finished(20), (255)
+    } HandshakeType;
+  \end{Verbatim}
+\end{frame}
+
+\begin{frame}[containsverbatim]{ClientHello}
+  \begin{Verbatim}[gobble=4, fontsize=\scriptsize]
+    struct {
+        ProtocolVersion client_version;
+        Random random;
+        SessionID session_id;
+        CipherSuite cipher_suites<2..2^16-2>;
+        CompressionMethod compression_methods<1..2^8-1>;
+        select (extensions_present) {
+            case false:
+                struct {};
+            case true:
+                Extension extensions<0..2^16-1>;
+        };
+    } ClientHello;
+
+    struct {
+        uint32 gmt_unix_time;
+        opaque random_bytes[28];
+    } Random;
+    opaque SessionID<0..32>;
+    uint8 CipherSuite[2];
+    enum { null(0), (255) } CompressionMethod;
+  \end{Verbatim}
+\end{frame}
+
+\begin{frame}[containsverbatim]{ServerHello}
+  \begin{Verbatim}[gobble=4, fontsize=\scriptsize]
+    struct {
+        ProtocolVersion server_version;
+        Random random;
+        SessionID session_id;
+        CipherSuite cipher_suite;
+        CompressionMethod compression_method;
+        select (extensions_present) {
+            case false:
+                struct {};
+            case true:
+                Extension extensions<0..2^16-1>;
+        };
+    } ServerHello;
+
+    struct {
+        ExtensionType extension_type;
+        opaque extension_data<0..2^16-1>;
+    } Extension;
+    enum {
+        signature_algorithms(13), (65535)
+    } ExtensionType;
+  \end{Verbatim}
+\end{frame}
+
+\begin{frame}{Remarques sur les Hello}
+  \begin{block}{Négociation}
+    \begin{itemize}
+      \item Le client propose, le serveur dispose
+      \item Le serveur DOIT ignorer silencieusement les valeurs inconnues
+        (version, suites, compression, extensions)
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Suites}
+    \begin{itemize}
+      \item TLS_\emph{KEYEX}_WITH_\emph{CIPHER}_\emph{HASH}
+      \item Ex recommandé : TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      \item OpenSSL a des noms différents, ex AES128-SHA
+      \item Plus de 300 définies, seulement une poignée recommandée
+      \item \url{https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml\#tls-parameters-4}
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Dérivation des clés}
+  \begin{itemize}
+    \item L'échange de clé fourni un secret pré-maître (PMS) de longueur
+      variable
+    \item On en dérive un secret maître (MS) de 48 octets :
+      \begin{Verbatim}[gobble=8]
+        MS = PRF(PMS, "master secret",
+                 ClientHello.random + ServerHello.random)
+                 [0..47];
+      \end{Verbatim}
+    \item La fonction pseudo-aléatoire (PRF) est basée sur des hash (MD5+SHA1,
+      SHA-256) et est utilisée comme KDF
+    \item Un bloc de clés est dérivé du MS en appliquant la PRF
+    \item Il est découpé en clés et IV (client/serveur,
+      AES/HMAC)
+    \item RFC 7627 et TLS 1.3 remplacent les random par \emph{session hash}
+      (hash de toute la poignée de main) (cf \emph{triple handshake})
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Le message Finished}
+  \begin{Verbatim}[gobble=4, fontsize=\footnotesize]
+    struct {
+        opaque verify_data[verify_data_length];
+    } Finished;
+
+    verify_data
+       PRF(master_secret, finished_label, Hash(handshake_messages))
+          [0..verify_data_length-1];
+  \end{Verbatim}
+
+  \begin{itemize}
+    \item En pratique \texttt{verify_data_length} est 12 octets
+    \item Le but est d'assurer la fiabilité de la négociation : un attaquant
+      qui essaie d'influencer la négociation sera détecté
+    \item Sert aussi de confirmation de clé, ce qui simplifie les preuves de
+      sécurité
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Serveur intolérants et attaque en downgrade}
+  \begin{itemize}
+    \item Des serveurs codés avec les pieds rejettent les ClientHello avec
+      une version « trop » élevée, ou avec des extensions
+    \item Certaines middlebox font de même
+    \item Les clients qui veulent quand même communiquer dans ce cas font un
+      \emph{fallback} avec un ClientHello.version plus faible
+    \item Ce fallback hors-protocole n'est pas protégé par le Finished
+    \item Un serveur intolérant est indistiguable d'un attaquant
+    \item Ce fallback n'est donc \emph{pas sûr} (ex. partie DLE de POODLE)
+    \item On a un compromis utilisabilité-sécurité (pour changer !)
+    \item Le RFC 7507 améliore la situation avec une \emph{signaling
+        ciphersuite value} (SCSV) indiquant le fallback
+  \end{itemize}
+\end{frame}
+
+\section[RSA]{Transport de clé RSA}
+\tocsect
+
+% principe
+% Aperçu Bleichenbacher
+% Évocation Klima
+% Concept de PFS
+
+\section[(EC)DHE]{Échange de clé Diffie-Hellman (elliptique)}
+\tocsect
+
+% rappel RSA/DL et ECC
+% principe DHE-RSA, ECDHE-RSA, ECDHE-ECDSA
+% pb taille de paramètre FFDH - Logjam 1
+
+\section[Timing]{Attaques par timing sur RSA et ECDSA}
+\tocsect
+
+% principe square-and-multiply, papier practical
+% square-and-always-multipy, still practical
+% aparté : ECDSA PS3, deterministic ECDSA
+% caching, branch prediction, securecoding
+
+\section[PKIX]{Infrastructure à clé publique X.509}
+\tocsect
+
+% principe chaine, racine de confiance
+% la honte : validation de la chaine, validation du nom
+% récovation : CRL, OCSP, CRLsets
+% incidents Comodo, ANSSI, Symantec, etc TBTF
+% principe CT
+% HPKP
+% DANE
+
+\section[Échanges]{Autres échanges de clé}
+\tocsect
+
+% *-PSK
+% DH_anon, DSA, etc?
+% export : FREAK, Logjam 2
+
+\section[Attaques]{Autres attaques}
+\tocsect
+
+% stripping (HTTP, STARTTLS) - HSTS
+% Renego (extension) - 3HS (session hash)
+% Impl: debian/OpenSSL, heartbleed, CCS, goto fail
+% Impl 2: memset(0) X.509
+% DoS (DTLS - DDoS amplification)
+
+\section{Conclusion}
+\tocsect
+
+\end{document}
