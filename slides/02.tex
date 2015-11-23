@@ -715,18 +715,85 @@
 \section[Attaques]{Autres attaques}
 \tocsect
 
-% stripping (HTTP, STARTTLS) - HSTS
-% Renego (extension) - 3HS (session hash)
-% aparté : ECDSA PS3, deterministic ECDSA
-% Impl: debian/OpenSSL, heartbleed, CCS, goto fail
-% Impl 2: memset(0) X.509
-% DoS (DTLS - DDoS amplification)
+\begin{frame}{Attaques génériques}
+  \begin{block}{Stripping}
+    \begin{itemize}
+      \item L'attaquant supprime une redirection HTTP \textrightarrow HTTPS
+      \item L'attaquant supprime l'annonce de STARTTLS
+      \item \url{http://www.thoughtcrime.org/software/sslstrip/}
+      \item Solution partielle pour HTTP : HTTP-Strict-Transport-Security (RFC
+        6797)
+    \end{itemize}
+  \end{block}
 
-\section{Conclusion}
+  \begin{block}{Dénis de service}
+    \begin{itemize}
+      \item Contre le serveur : l'attaquant envoie un ClientHello puis ne
+        répond plus. Le serveur calcule une signature et un demi DH.
+      \item Contre un tiers, en DTLS : un serveur mal configuré peut être
+        utilisé comme amplificateur ; les cookies DTLS sont conçus pour
+        l'empêcher.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Renégociation}
+  Consiste à effectuer une deuxième poignée de mains au sein d'une même
+  connection (rafraichissement des clés, certificat client).
+
+  \begin{block}{Renégociation non sécurisée (2009)}
+    \begin{itemize}
+      \item Les deux poignées de main ne sont pas liées cryptographiquement
+      \item Un attaquant peut injecter du traffic avant le début d'une
+        connection légitime
+      \item Solution : RFC 5746
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Triple handshake (2014)}
+    \begin{itemize}
+      \item Attaque sophistiquée permettant à un serveur de «
+        voler » l'authentification du client auprès d'un autre serveur
+      \item Trouvées en essayant de prouver TLS sûr\dots
+      \item Solution : RFC 7627
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Bugs dans les implémentations}
+  Sans doute plus de 80\% des failles de sécurité (au doigt mouillé) !
+  Quelques exemples célèbres :
+  \begin{itemize}
+    \item La faille Debian/OpenSSL : de 2006 à 2008, mauvais patch, nombres
+      aléatoires générés avec seulement 16 bits d'entropie
+    \item Hearbleed (OpenSSL) : de 2012 à 2014, buffer overread, fuite
+      d'information silencieuse, potentiellement clé secrète
+      \url{http://heartbleed.com/}
+    \item Early CCS (OpenSSL) : de 2012 à 2014, erreur de machine à état, MitM
+      possible \url{https://www.imperialviolet.org/2014/06/05/earlyccs.html}
+    \item Double goto fail d'Apple : (2014) \texttt{if(...) goto fail; goto
+        fail; if(...)} ; permet d'utiliser des certificats sans leur clé
+  \end{itemize}
+  Liste non exhaustive !
+\end{frame}
+
+% \section{Conclusion}
+% \tocsect
+% 
+% % rappel : primitives OK et cassées, tailles de clé
+% % compromis : sécurité vs interop, perf/cout, admin, etc
+% % aperçu TLS 1.3
+
+\section{Pratique}
 \tocsect
 
-% rappel : primitives OK et cassées, tailles de clé
-% compromis : sécurité vs interop, perf/cout, admin, etc
-% aperçu TLS 1.3
+\begin{frame}{Pour la prochaine séance}
+  \begin{itemize}
+    \item Télécharger mbed TLS \url{https://tls.mbed.org/}
+    \item Le compiler (cf Readme)
+    \item Lire \url{https://tls.mbed.org/high-level-design}
+    \item Lire \url{https://tls.mbed.org/kb/how-to/mbedtls-tutorial}
+  \end{itemize}
+\end{frame}
 
 \end{document}
