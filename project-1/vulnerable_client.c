@@ -67,21 +67,38 @@ int main( void )
 #define POST_REQUEST "POST /%s HTTP/1.0\r\nCookie: secret=%s\r\n\r\n%s\r\n"
 #define SECRET      "dGhpcyBwb29kbGUgYml0ZXM="
 
-#define DEBUG_LEVEL 0
+struct options
+{
+    const char *path;
+    const char *body;
+    int debug_level;
+};
+
+#define USAGE \
+    "\n usage: vulnerable_cliet param=value ...\n"      \
+    "\n acceptable parameters:\n"                       \
+    "    path=%%s           default: \"path\"\n"        \
+    "    body=%%s           default: \"body\"\n"        \
+    "    debug_level=%%d    default: 0\n"
 
 static void my_debug( void *ctx, int level,
                       const char *file, int line,
                       const char *str )
 {
-    ((void) level);
+    const char *p, *basename;
 
-    mbedtls_fprintf( (FILE *) ctx, "%s:%04d: %s", file, line, str );
+    /* Extract basename from file */
+    for( p = basename = file; *p != '\0'; p++ )
+        if( *p == '/' || *p == '\\' )
+            basename = p + 1;
+
+    mbedtls_fprintf( (FILE *) ctx, "%s:%04d: |%d| %s", basename, line, level, str );
     fflush(  (FILE *) ctx  );
 }
 
-int main( void )
+int main( int argc, char **argv )
 {
-    int ret, len, written;
+    int ret, len, written, i;
     mbedtls_net_context server_fd;
     unsigned char buf[1024];
     const char *pers = "vulnerable_client";
@@ -89,6 +106,7 @@ int main( void )
         MBEDTLS_TLS_RSA_WITH_AES_128_CBC_SHA,
         0
     };
+    struct options opt = { "path", "body", 0 };
 
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctr_drbg;
@@ -96,15 +114,44 @@ int main( void )
     mbedtls_ssl_config conf;
     mbedtls_x509_crt cacert;
 
-#if defined(MBEDTLS_DEBUG_C)
-    mbedtls_debug_set_threshold( DEBUG_LEVEL );
-#endif
-
+    /* Ensure valid memory references */
     mbedtls_net_init( &server_fd );
     mbedtls_ssl_init( &ssl );
     mbedtls_ssl_config_init( &conf );
     mbedtls_x509_crt_init( &cacert );
     mbedtls_ctr_drbg_init( &ctr_drbg );
+    mbedtls_entropy_init( &entropy );
+
+    if( argc == 0 )
+    {
+usage:
+        mbedtls_printf( USAGE );
+        ret = 1;
+        goto exit;
+    }
+
+    for( i = 1; i < argc; i++ )
+    {
+        char *p, *q;
+
+        p = argv[i];
+        if( ( q = strchr( p, '=' ) ) == NULL )
+            goto usage;
+        *q++ = '\0';
+
+        if( strcmp( p, "path" ) == 0 )
+            opt.path = q;
+        else if( strcmp( p, "body" ) == 0 )
+            opt.body = q;
+        else if( strcmp( p, "debug_level" ) == 0 )
+        {
+            opt.debug_level = atoi( q );
+            if( opt.debug_level < 0 || opt.debug_level > 5 )
+                goto usage;
+        }
+        else
+            goto usage;
+    }
 
     /*
      * 0. Initialize the RNG and the session data
@@ -112,7 +159,6 @@ int main( void )
     mbedtls_printf( "\n  . Seeding the random number generator..." );
     fflush( stdout );
 
-    mbedtls_entropy_init( &entropy );
     if( ( ret = mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func, &entropy,
                                (const unsigned char *) pers,
                                strlen( pers ) ) ) != 0 )
@@ -169,7 +215,9 @@ int main( void )
         goto exit;
     }
 
-    mbedtls_printf( " ok\n" );
+#if defined(MBEDTLS_DEBUG_C)
+    mbedtls_debug_set_threshold( opt.debug_level );
+#endif
 
     mbedtls_ssl_conf_ca_chain( &conf, &cacert, NULL );
     mbedtls_ssl_conf_rng( &conf, mbedtls_ctr_drbg_random, &ctr_drbg );
@@ -197,6 +245,8 @@ int main( void )
 
     mbedtls_ssl_set_bio( &ssl, &server_fd, mbedtls_net_send, mbedtls_net_recv, NULL );
 
+    mbedtls_printf( " ok\n" );
+
     /*
      * 4. Handshake
      */
@@ -221,7 +271,7 @@ int main( void )
     fflush( stdout );
 
     len = snprintf( (char *) buf, sizeof( buf ), POST_REQUEST,
-                    "path", SECRET, "body" );
+                    opt.path, SECRET, opt.body );
     if( len < 0 || (size_t) len > sizeof( buf ) )
     {
         mbedtls_printf( " failed\n  ! buffer too small for request\n\n" );

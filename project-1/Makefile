@@ -6,8 +6,9 @@ INC_DIR=$(MBEDTLS_DIR)/include
 PRG_DIR=$(MBEDTLS_DIR)/programs
 
 LIBS=$(LIB_DIR)/libmbedtls.a $(LIB_DIR)/libmbedx509.a $(LIB_DIR)/libmbedcrypto.a
+BINS=vulnerable_client flexible_server
 
-all: vulnerable_client flexible_server
+all: $(BINS)
 
 vulnerable_client: vulnerable_client.c $(LIBS)
 	$(CC) $(CFLAGS) -I $(INC_DIR) $< $(LIBS) -o $@
@@ -21,4 +22,7 @@ $(LIBS): force_libs
 force_libs:
 	$(MAKE) -C $(MBEDTLS_DIR) lib
 
-.PHONY: force_libs
+mrproper:
+	rm -f $(BINS)
+
+.PHONY: force_libs mrproper
