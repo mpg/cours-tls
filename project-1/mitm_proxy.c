@@ -104,6 +104,7 @@ int forward( mbedtls_net_context *from, mbedtls_net_context *to )
 int main( void )
 {
     int ret;
+    int server_gone = 0;
 
     mbedtls_net_context listen_fd, client_fd, server_fd;
 
@@ -133,6 +134,7 @@ int main( void )
     /*
      * 2. Wait until a client connects
      */
+accept:
     mbedtls_printf( "  . Waiting for a remote connection ..." );
     fflush( stdout );
 
@@ -142,9 +144,6 @@ int main( void )
         mbedtls_printf( " failed\n  ! mbedtls_net_accept returned %d\n\n", ret );
         goto exit;
     }
-
-    /* We only accept one client at a time */
-    mbedtls_net_free( &listen_fd );
 
     mbedtls_printf( " ok\n" );
 
@@ -159,6 +158,7 @@ int main( void )
                                      MBEDTLS_NET_PROTO_TCP ) ) != 0 )
     {
         mbedtls_printf( " failed\n  ! mbedtls_net_connect returned %d\n\n", ret );
+        server_gone = 1;
         goto exit;
     }
 
@@ -212,6 +212,9 @@ exit:
 
     mbedtls_net_free( &client_fd );
     mbedtls_net_free( &server_fd );
+    if( ! server_gone )
+        goto accept;
+
     mbedtls_net_free( &listen_fd );
 
 #if defined(_WIN32)
