@@ -1,6 +1,6 @@
 #!/bin/sh
 
-make
+make >/dev/null
 
 killall flexible_server >/dev/null 2>&1
 ./flexible_server min_version=ssl3 server_port=5556 >/dev/null &
@@ -12,18 +12,15 @@ PXY_PID=$!
 
 sleep 1
 
-S=0
-MAX=4096
+P=123456789
+B=1234560123456789012345
 
-for i in $(seq 1 $MAX); do
-    printf "$i... "
-    if ./vulnerable_client >/dev/null; then
-        S=$(( $S + 1 ))
-        printf "SUCCESS "
+while true; do
+    if ./vulnerable_client path=$P body=$B >/dev/null; then
+        break
     fi
 done
-
-printf "\n$S (expected about $(( $MAX / 256 )))\n"
+tail -n1 guesses
 
 kill $SRV_PID
 kill $PXY_PID

