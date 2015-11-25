@@ -12,8 +12,8 @@ PXY_PID=$!
 
 sleep 1
 
-P=123456789
-B=1234560123456789012345
+P=ppppppppp
+B=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 
 while true; do
     if ./vulnerable_client path=$P body=$B >/dev/null; then

@@ -80,7 +80,7 @@ int main( void )
 #define LISTEN_ADDR         "localhost"
 #define LISTEN_PORT         "4433"
 
-#define PT_LEN     128  /* Length of interesting plaintext (inc. mac + padding) */
+#define PT_LEN     144  /* Length of interesting plaintext (inc. mac + padding) */
 #define BLOCK_OFF   48  /* Offset of interesting block within plaintext */
 #define BLOCK_LEN   16  /* Size of an AES block */
 #define HDR_LEN      5  /* Lenght of SSL record header */
