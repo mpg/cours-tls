@@ -17,7 +17,9 @@ l'attaque est de récupérer un cookie secret.
 
 Note : le cookie "secret" est en fait en clair dans le source du client, et
 affiché dans les messages du client et du serveur, pour faciliter le débogage.
-Le but est évidemment de le retrouver indépendemment.
+Le but est évidemment de le retrouver indépendemment. Vous pouvez supposer
+connues la structure de la requête, la longueur du secret (24 octets), et le
+fait qu'il est en base64, en particulier tous ses caractères sont imprimables.
 
 Pour implémenter l'attaque, vous devrez :
 
@@ -43,7 +45,7 @@ Happy hacking!
 Pour rentrer dans le vif du sujet (les deux premières étapes sont
 indépendantes et peuvent être faites dans l'ordre inverse) :
 
-0. Invoquer le client de façon à contrôler la quntité de padding et
+0. Invoquer le client de façon à contrôler la quantité de padding et
    l'emplacement du secret.
 0. Dans le proxy-MitM, modifier les records de type ApplicationData du client
    vers le serveur de façon adéquate.
