@@ -105,6 +105,21 @@ int forward( mbedtls_net_context *from,
     len = (size_t) ret;
     printf( "forwarding %d bytes (%s)\n", ret, dir == c2s ? "c2s" : "s2c" );
 
+    /*
+     * Only alter record from client to server that are AppData,
+     * skipping 1-byte records from 1/n-1 splitting.
+     */
+    if( dir == c2s &&
+        len > 40 &&
+        buf[0] == MBEDTLS_SSL_MSG_APPLICATION_DATA )
+    {
+        /*
+         * For now just do a dummy change, it should be enough to start
+         * detecting that we get failures with probability 255/256
+         */
+        buf[len-1] = 0;
+    }
+
     if( ( ret = mbedtls_net_send( to, buf, len ) ) < 0 )
         return( ret );
 
