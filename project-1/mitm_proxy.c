@@ -73,28 +73,45 @@ int main( void )
 #include <unistd.h>
 #endif /* ( _WIN32 || _WIN32_WCE ) && !EFIX64 && !EFI32 */
 
-#define MAX_MSG_SIZE            16384 + 2048 /* max record size */
+#define MAX_MSG_SIZE        16384 + 2048 /* max record size */
 
 #define SERVER_ADDR         "localhost"
 #define SERVER_PORT         "5556"
 #define LISTEN_ADDR         "localhost"
 #define LISTEN_PORT         "4433"
 
-int forward( mbedtls_net_context *from, mbedtls_net_context *to )
+enum direction {
+    c2s,
+    s2c
+};
+
+/*
+ * Forward a packet, possibly altering it in the process
+ */
+int forward( mbedtls_net_context *from,
+             mbedtls_net_context *to,
+             enum direction dir )
 {
     unsigned char buf[MAX_MSG_SIZE];
     int ret;
     size_t len;
 
-    if( ( ret = mbedtls_net_recv( from, buf, sizeof( buf ) ) ) <= 0 )
+    if( ( ret = mbedtls_net_recv( from, buf, sizeof( buf ) ) ) < 0 )
         return( ret );
+
+    if( ret == 0 )
+        return( MBEDTLS_ERR_NET_CONN_RESET );
 
     len = (size_t) ret;
+    printf( "forwarding %d bytes (%s)\n", ret, dir == c2s ? "c2s" : "s2c" );
 
-    if( ( ret = mbedtls_net_send( to, buf, len ) ) <= 0 )
+    if( ( ret = mbedtls_net_send( to, buf, len ) ) < 0 )
         return( ret );
 
-    /* Be lazy, don't handle partial reads, but still detect them */
+    if( ret == 0 )
+        return( MBEDTLS_ERR_NET_CONN_RESET );
+
+    /* Be lazy, don't handle partial writes, but still detect them */
     if( (size_t) ret != len )
         return( -1 );
 
@@ -104,7 +121,7 @@ int forward( mbedtls_net_context *from, mbedtls_net_context *to )
 int main( void )
 {
     int ret;
-    int server_gone = 0;
+    int really_exit = 0;
 
     mbedtls_net_context listen_fd, client_fd, server_fd;
 
@@ -158,15 +175,15 @@ accept:
                                      MBEDTLS_NET_PROTO_TCP ) ) != 0 )
     {
         mbedtls_printf( " failed\n  ! mbedtls_net_connect returned %d\n\n", ret );
-        server_gone = 1;
+        really_exit = 1;
         goto exit;
     }
 
     mbedtls_printf( " ok\n" );
 
     /*
-     * 4. Forward packets until some party disconnects
-     * (more precisely, until any error occurs)
+     * 4. Forward packets until some party disconnects (more precisely, until
+     * an error occurs) or a new client connects
      */
     nb_fds = client_fd.fd;
     if( nb_fds < server_fd.fd )
@@ -182,22 +199,27 @@ accept:
         if( ( ret = select( nb_fds, &read_fds, NULL, NULL, NULL ) ) <= 0 )
         {
             perror( "select" );
+            really_exit = 1;
             goto exit;
         }
 
         if( FD_ISSET( client_fd.fd, &read_fds ) )
         {
-            if( ( ret = forward( &client_fd, &server_fd ) ) != 0 )
+            if( ( ret = forward( &client_fd, &server_fd, c2s ) ) != 0 )
                 goto exit;
         }
 
         if( FD_ISSET( server_fd.fd, &read_fds ) )
         {
-            if( ( ret = forward( &server_fd, &client_fd ) ) != 0 )
+            if( ( ret = forward( &server_fd, &client_fd, s2c ) ) != 0 )
                 goto exit;
         }
     }
 
+    /*
+     * Only exit if we got a bad enough error,
+     * otherwise loop to accepting a new client
+     */
 exit:
 
 #ifdef MBEDTLS_ERROR_C
@@ -212,7 +234,7 @@ exit:
 
     mbedtls_net_free( &client_fd );
     mbedtls_net_free( &server_fd );
-    if( ! server_gone )
+    if( ! really_exit )
         goto accept;
 
     mbedtls_net_free( &listen_fd );
