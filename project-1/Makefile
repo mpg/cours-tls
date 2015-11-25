@@ -1,4 +1,4 @@
-CFLAGS=-Wall -Wextra -Os
+CFLAGS=-std=c99 -Wall -Wextra -Os
 
 MBEDTLS_DIR=../mbedtls
 LIB_DIR=$(MBEDTLS_DIR)/library
@@ -20,7 +20,8 @@ flexible_server: $(PRG_DIR)/ssl/ssl_server2.c $(LIBS)
 	$(MAKE) -C $(PRG_DIR) ssl/ssl_server2
 	cp $(PRG_DIR)/ssl/ssl_server2 flexible_server
 
-$(LIBS): force_libs
+$(LIBS):
+	$(MAKE) -C $(MBEDTLS_DIR) lib
 
 force_libs:
 	$(MAKE) -C $(MBEDTLS_DIR) lib
