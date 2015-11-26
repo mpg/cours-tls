@@ -105,7 +105,7 @@ static int my_verify( void *data, mbedtls_x509_crt *crt, int depth, uint32_t *fl
     mbedtls_x509_crt_info( buf, sizeof( buf ), "    ", crt );
     mbedtls_printf( "%s", buf );
 
-    x509_crt_pkhash( crt, buf );
+    x509_crt_pkhash( crt, buf, sizeof( buf ) );
     mbedtls_printf( "  Certificate public key hash: %s\n", buf );
 
     // TODO: check certificate against pins

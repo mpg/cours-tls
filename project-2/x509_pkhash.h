@@ -5,8 +5,9 @@
  *              The output is a printable, NULL-terminated string.
  *
  * \param crt   The certificate
- * \param buf   Output buffer, must be at least 46 bytes long
+ * \param buf   Output buffer
+ * \param len   Size of buf
  *
  * \return      0 on success or a negative error code
  */
-int x509_crt_pkhash( const mbedtls_x509_crt *crt, char *buf );
+int x509_crt_pkhash( const mbedtls_x509_crt *crt, char *buf, size_t len );

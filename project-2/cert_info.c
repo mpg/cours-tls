@@ -100,7 +100,7 @@ int main( int argc, char *argv[] )
      */
     mbedtls_printf( "  . Certificate public key hash: " );
 
-    ret = x509_crt_pkhash( &crt, buf );
+    ret = x509_crt_pkhash( &crt, buf, sizeof( buf ) );
     if( ret != 0 )
     {
         mbedtls_printf( " failed\n  !  x509_crt_pkhash returned %d\n\n", ret );
