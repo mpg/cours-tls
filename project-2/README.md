@@ -14,7 +14,7 @@ Un exemple de client TLS est fourni, avec une liste de pins et quelques
 certificats associés. Pour réussir ce projet, vous devrez :
 
 1. Compléter le client en implémentant la vérification des pins
-2. Générer un ou plusieurs certificats de test supplémentaires
+2. Générer un ou plusieurs certificats de test supplémentaires si besoin
 3. Écrire un bref document expliquant/justifiant votre stratégie de test
 
 La section suivante donne quelques suggestions, vous pouvez les ignorer et
@@ -62,5 +62,18 @@ La première étape peut se faire confortablement hors du client TLS. Dans ce
 but, un fichier séparé pour implémenter cette fonction et un programme simple
 l'appelant sont fournis.
 
-N'oubliez pas de consulter la documentation de l'API de mbed TLS ainsi que les
-exemples !
+N'oubliez pas de consulter la documentation de l'API de mbed TLS !
+
+
+## Pour aller un peu plus loin
+
+Vous pouvez modifier votre code pour accepter d'autres hash que SHA-256 dans
+la liste de pins (voir `md.h` pour une API générique).
+
+
+## Pour aller plus loin (BONUS)
+
+Vous pouvez aller parcourir les RFC 6698 (DANE) et 7218 (acronymes pour DANE),
+puis implémenter des variantes de votre callback pour PKIX-TA, PKIX-EE,
+DANE-TA, DANE-EE, et étendre la structure de la liste de pins pour supporter
+des entrées de type Cert ou SPKI, et Full ou SHA-256 ou SHA-512.
