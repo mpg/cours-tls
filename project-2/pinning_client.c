@@ -83,12 +83,71 @@ static void my_debug( void *ctx, int level,
     fflush(  (FILE *) ctx  );
 }
 
+struct vrfy_state
+{
+    const char **pins;  /* pointer to pin list */
+    // TODO: add your things here if needed
+};
+
+/*
+ * X.509 cert verification callback
+ *
+ * XXX This is a stub to get you started, just printing some information.
+ */
+static int my_verify( void *data, mbedtls_x509_crt *crt, int depth, uint32_t *flags )
+{
+    char buf[1024];
+    struct vrfy_state *state = (struct vrfy_state *) data;
+
+    mbedtls_printf( "\nVerify requested for (Depth %d):\n", depth );
+    mbedtls_x509_crt_info( buf, sizeof( buf ) - 1, "", crt );
+    mbedtls_printf( "%s", buf );
+
+    // TODO: check certificate against pins
+    (void) state;
+
+    if ( ( *flags ) == 0 )
+        mbedtls_printf( "  This certificate has no issues\n" );
+    else
+    {
+        mbedtls_x509_crt_verify_info( buf, sizeof( buf ), "  ! ", *flags );
+        mbedtls_printf( "%s\n", buf );
+    }
+
+    return( 0 );
+}
+
+/* XXX
+ * NULL-terminated list of permanent public-key pins for localhost.
+ * All pins entries are base64-encoded SHA-256 hashes of public keys.
+ *
+ * The pins were generated and checked with the following commands:
+ *
+ * openssl pkey -in s1.key -outform der -pubout | openssl sha256 -binary | base64
+ * openssl x509 -in s1-1.crt -noout -pubkey | openssl pkey -pubin -outform der | openssl sha256 -binary | base64
+ *
+ * cd ../mbedtls/tests/data_files
+ * openssl pkey -in test-ca2.key -outform der -pubout | openssl sha256 -binary | base64
+ * openssl x509 -in test-ca2.crt -noout -pubkey | openssl pkey -pubin -outform der | openssl sha256 -binary | base64
+ */
+static const char *pins[] =
+{
+    "DUe7MplcTzdCKN1AHKRr5P4xPviZYMgbjG24tQLz9cU=", /* test-ca2.key */
+    "CrmM1N0luRPxqGGmV2nzbGzBRK8jJv80ohi1E4hVI34=", /* s1.key */
+    NULL
+};
+
 int main( void )
 {
     int ret, len, written;
     mbedtls_net_context server_fd;
     unsigned char buf[1024];
     const char *pers = "pinning_client";
+
+    /* XXX create some state for our verify callback */
+    struct vrfy_state vrfy_state = {
+        .pins = pins,
+    };
 
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctr_drbg;
@@ -173,6 +232,9 @@ int main( void )
     mbedtls_ssl_conf_ca_chain( &conf, &cacert, NULL );
     mbedtls_ssl_conf_rng( &conf, mbedtls_ctr_drbg_random, &ctr_drbg );
     mbedtls_ssl_conf_dbg( &conf, my_debug, stdout );
+
+    /* XXX: register our certificate verification callback */
+    mbedtls_ssl_conf_verify( &conf, my_verify, &vrfy_state );
 
     if( ( ret = mbedtls_ssl_setup( &ssl, &conf ) ) != 0 )
     {
