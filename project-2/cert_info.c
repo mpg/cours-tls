@@ -43,6 +43,7 @@ int main( void )
 #else
 
 #include "mbedtls/x509_crt.h"
+#include "x509_pkhash.h"
 
 #define USAGE "usage: cert_info filename.crt\n"
 
@@ -65,7 +66,7 @@ int main( int argc, char *argv[] )
     filename = argv[1];
 
     /*
-     * 1.1. Load the certificate(s)
+     * 1. Load the certificate
      */
     mbedtls_printf( "\n  . Loading certificate '%s' ...", filename );
     fflush( stdout );
@@ -80,7 +81,7 @@ int main( int argc, char *argv[] )
     mbedtls_printf( " ok\n" );
 
     /*
-     * 1.2 Print the certificate(s)
+     * 2. Print the certificate
      */
     mbedtls_printf( "  . Certificate information:\n" );
 
@@ -91,6 +92,20 @@ int main( int argc, char *argv[] )
         goto exit;
     }
     ret = 0;
+
+    mbedtls_printf( "%s\n", buf );
+
+    /*
+     * 3. Print de certificate's public key hash
+     */
+    mbedtls_printf( "  . Certificate public key hash: " );
+
+    ret = x509_crt_pkhash( &crt, buf );
+    if( ret != 0 )
+    {
+        mbedtls_printf( " failed\n  !  x509_crt_pkhash returned %d\n\n", ret );
+        goto exit;
+    }
 
     mbedtls_printf( "%s\n", buf );
 

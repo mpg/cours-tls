@@ -60,6 +60,8 @@ int main( void )
 #include "mbedtls/error.h"
 #include "mbedtls/certs.h"
 
+#include "x509_pkhash.h"
+
 #include <string.h>
 
 #define SERVER_PORT "4433"
@@ -100,8 +102,11 @@ static int my_verify( void *data, mbedtls_x509_crt *crt, int depth, uint32_t *fl
     struct vrfy_state *state = (struct vrfy_state *) data;
 
     mbedtls_printf( "\nVerify requested for (Depth %d):\n", depth );
-    mbedtls_x509_crt_info( buf, sizeof( buf ) - 1, "", crt );
+    mbedtls_x509_crt_info( buf, sizeof( buf ), "    ", crt );
     mbedtls_printf( "%s", buf );
+
+    x509_crt_pkhash( crt, buf );
+    mbedtls_printf( "  Certificate public key hash: %s\n", buf );
 
     // TODO: check certificate against pins
     (void) state;
