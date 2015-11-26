@@ -19,8 +19,8 @@ N=0
 
 START=$( date +%s )
 
-for i in $( seq 24 1 ); do
-    printf "%02d... " "$i"
+for i in $( seq 1 24 ); do
+    printf "%02d... " $(( 25 - $i ))
 
     while true; do
         N=$(( $N + 1 ))
@@ -44,7 +44,7 @@ END=$( date +%s )
 
 echo ""
 echo "$S"
-echo "$S" | base64 -D
+echo "$S" | base64 --decode
 echo ""
 
 echo ""
