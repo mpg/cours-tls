@@ -88,13 +88,11 @@ static void my_debug( void *ctx, int level,
 struct vrfy_state
 {
     const char **pins;  /* pointer to pin list */
-    // TODO: add your things here if needed
+    int good;
 };
 
 /*
  * X.509 cert verification callback
- *
- * XXX This is a stub to get you started, just printing some information.
  */
 static int my_verify( void *data, mbedtls_x509_crt *crt, int depth, uint32_t *flags )
 {
@@ -108,8 +106,17 @@ static int my_verify( void *data, mbedtls_x509_crt *crt, int depth, uint32_t *fl
     x509_crt_pkhash( crt, buf, sizeof( buf ) );
     mbedtls_printf( "  Certificate public key hash: %s\n", buf );
 
-    // TODO: check certificate against pins
-    (void) state;
+    for( const char **cur = state->pins; *cur != NULL; cur++ )
+    {
+        if( strcmp( *cur, buf ) == 0 )
+        {
+            state->good = 1;
+            mbedtls_printf( "  pkhash match\n" );
+        }
+    }
+
+    if( depth == 0 && state->good == 0 )
+        *flags |= MBEDTLS_X509_BADCERT_OTHER;
 
     if ( ( *flags ) == 0 )
         mbedtls_printf( "  This certificate has no issues\n" );
@@ -152,6 +159,7 @@ int main( void )
     /* XXX create some state for our verify callback */
     struct vrfy_state vrfy_state = {
         .pins = pins,
+        .good = 0,
     };
 
     mbedtls_entropy_context entropy;
