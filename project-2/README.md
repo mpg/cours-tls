@@ -35,6 +35,9 @@ Pour se familiariser avec le matériel fourni :
 `programs/pkey/gen_key`, `programs/x509/cert_app`, `programs/x509/cert_write`.
 0. Faire communiquer le client avec le serveur, en chargeant différents
    certificats sur le serveur.
+0. Relire le source du client, en s'attardant sur les zones marquées TODO ou
+   XXX et consulter la documentation des fonctions associées :
+   <https://tls.mbed.org/api/>
 
 Les certificats de test fournis on été signés par les CA suivantes (les noms
 de fichiers sont relatifs à `../mbedtls/tests/data_files`) :
@@ -49,3 +52,15 @@ Les certificats de test fournis sont :
 
 Le client fourni comme point de départ a `test-ca.key` et `s1.key` dans sa
 liste de pins.
+
+Les deux étapes naturelles sont :
+
+1. Calcul du hash de la clé publique d'un certificat.
+2. Validation ds certificats par rapport à la liste de pins.
+
+La première étape peut se faire confortablement hors du client TLS. Dans ce
+but, un fichier séparé pour implémenter cette fonction et un programme simple
+l'appelant sont fournis.
+
+N'oubliez pas de consulter la documentation de l'API de mbed TLS ainsi que les
+exemples !
