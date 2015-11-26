@@ -39,6 +39,8 @@ Happy hacking!
 
 ## Suggestions pour démarrer
 
+Pour se familiariser avec le matériel fourni :
+
 0. Parcourir le source du client et du proxy, ainsi que le Makefile.
 0. Compiler le client, le serveur et le proxy à l'aide du Makefile fourni.
 0. Parcourir les messages d'aide du serveur et du client.
