@@ -230,6 +230,8 @@ usage:
     mbedtls_ssl_conf_max_version( &conf, MBEDTLS_SSL_MAJOR_VERSION_3,
                                         MBEDTLS_SSL_MINOR_VERSION_0 );
     mbedtls_ssl_conf_ciphersuites( &conf, ciphersuites_rsa_aes_cbc );
+    mbedtls_ssl_conf_cbc_record_splitting( &conf,
+                                MBEDTLS_SSL_CBC_RECORD_SPLITTING_DISABLED );
 
     if( ( ret = mbedtls_ssl_setup( &ssl, &conf ) ) != 0 )
     {
