@@ -115,15 +115,10 @@ int forward( mbedtls_net_context *from,
      * skipping 1-byte records from 1/n-1 splitting.
      */
     if( dir == c2s &&
-        len >= HDR_LEN + PT_LEN &&
         buf[0] == MBEDTLS_SSL_MSG_APPLICATION_DATA )
     {
         /* Skip header */
         unsigned char *rec = buf + HDR_LEN;
-
-        /* Sometimes we get two records at once, skip the first one */
-        if( len == HDR_LEN + 2 * BLOCK_LEN + HDR_LEN + PT_LEN )
-            rec += HDR_LEN + 2 * BLOCK_LEN;
 
         /* Replace last block with the block of interest */
         memcpy( rec + PT_LEN - BLOCK_LEN, rec + BLOCK_OFF, BLOCK_LEN );

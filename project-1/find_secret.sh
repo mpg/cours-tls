@@ -12,7 +12,7 @@ PXY_PID=$!
 
 sleep 1
 
-P=ppppppppp
+P=pppppppp
 B=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 S=""
 N=0
