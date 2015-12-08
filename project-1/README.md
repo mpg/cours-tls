@@ -1,7 +1,7 @@
 # Projet 1 : implémentation de l'oracle de padding de POODLE
 
 L'attaque [POODLE][], pour _Padding Oracle On Downgraded Legacy Encryption_,
-consiste en deux étapes :
+consiste en deux parties :
 
 1. dégrader la connection en SSL 3.0 en utilisant le mécanisme de fallback non
    sûr du client vu en partie 2 du cours ;
@@ -27,6 +27,9 @@ Pour implémenter l'attaque, vous devrez :
 2. Écrire un script dans le langage de votre choix pour piloter le client et
    monter le gros de l'attaque.
 
+(Pour info, ma solution d'exemple ajoute 30 lignes à `mitm_proxy.c` et utilise
+un script shell d'une cinquantaine de lignes.)
+
 La section suivante donne quelques suggestions, vous pouvez les ignorer et
 procéder autrement. Dans tous les cas, n'oubliez pas de progresser par étapes
 en testant à chaque étape plutôt qu'à la fin.
@@ -35,6 +38,8 @@ Happy hacking!
 
 
 ## Suggestions pour démarrer
+
+Pour se familiariser avec le matériel fourni :
 
 0. Parcourir le source du client et du proxy, ainsi que le Makefile.
 0. Compiler le client, le serveur et le proxy à l'aide du Makefile fourni.

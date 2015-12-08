@@ -1,0 +1,77 @@
+% Written in 2015 by Manuel Pégourié-Gonnard
+% SPDX-License-Identifier: CC-BY-SA-4.0
+
+\documentclass{mpg-ep-slides}
+
+\author[MPG]{Manuel Pégourié-Gonnard\\
+  \href{mailto:mpg@elzevir.fr}{{mpg@elzevir.fr}}
+}
+\institute[ARM]{\normalsize ARM France - IoT - mbed TLS}
+\license{%
+  \url{https://github.com/mpg/cours-tls} \\[.5ex]
+  \href{https://creativecommons.org/licenses/by-sa/4.0/}{CC-BY-SA 4.0}
+}
+
+\title{Cours de cryptologie appliquée de l'EPITA \\ TLS - partie 3}
+\date{26 novembre 2015}
+
+\begin{document}
+
+\lictitle
+
+\section{Compléments}
+
+\begin{frame}{Actu : Lucky 13 frappe Amazon s2n}
+  \begin{center}
+    \url{https://eprint.iacr.org/2015/1129}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Références complémentaires - TLS}
+  \begin{itemize}
+    \item Rappel : RFC 5246 TLS 1.2, RFC 7525 recommandations pratiques, RFC
+      7457 attaques
+    \item \url{https://www.trustworthyinternet.org/ssl-pulse/} statistiques
+      sur les serveur HTTPS populaires
+    \item \url{https://www.ssllabs.com/ssltest/} testez votre serveur !
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Références crypto elliptique - en ligne}
+  \begin{itemize}
+    \item Courte introduction aux courbes et à des techniques d'implémentation
+      efficace : \url{https://www.imperialviolet.org/2010/12/04/ecc.html}
+    \item Intro plus détaillé avec code Python :
+      \url{http://andrea.corbellini.name/2015/05/17/elliptic-curve-cryptography-a-gentle-introduction/}
+    \item Un article retraçant l'histoire et pourquoi (on croit que) ça
+      marche, avec un des inventeurs :
+      \url{http://www.sciencedirect.com/science/article/pii/S0022314X09000481}
+    \item Une version gratuite des standards :
+      \url{http://www.secg.org/sec1-v2.pdf}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Références crypto elliptique - livres}
+  \begin{itemize}
+    \item Koblitz, \emph{A Course in Number Theory and Cryptogrphy}, Springer,
+      GTM 114. Tout le bagage mathématique nécessaire, et plus encore, en 200
+      pages (dont 40 sur les courbes elliptiques), avec une approche assez
+      pratique (complexité algorithmique) pour un livre de maths.
+    \item Hankerson, Menezes, Vanstone, \emph{Guide to Elliptic Curve
+        Cryptography}, Springer. La bible de l'implémenteur il y a 10 ans,
+      quelques manques depuis (side-channels, nouvelles formes de courbes).
+    \item Cohen, Frey (Eds), \emph{Handbook of Elliptic and Hyperelliptic
+        Curve Cryptography}, Chapman \& Hall. Juste \emph{la} référence sur
+      tous les aspect théoriques.
+  \end{itemize}
+\end{frame}
+
+\section{Pratique}
+
+\begin{frame}{Projets}
+  \begin{center}
+    \url{https://github.com/mpg/cours-tls}
+  \end{center}
+\end{frame}
+
+\end{document}

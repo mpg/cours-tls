@@ -1,5 +1,5 @@
 /*
- *  SSL client for simulating POODLE (the padding oracle part)
+ *  TLS Client implementing part of HPKP (RFC 7469)
  *
  *  Based on the following files from the mbed TLS distribution:
  *      programs/ssl/ssl_client1.c
@@ -60,26 +60,15 @@ int main( void )
 #include "mbedtls/error.h"
 #include "mbedtls/certs.h"
 
+#include "x509_pkhash.h"
+
 #include <string.h>
 
 #define SERVER_PORT "4433"
 #define SERVER_NAME "localhost"
-#define POST_REQUEST "POST /%s HTTP/1.0\r\nCookie: secret=%s\r\n\r\n%s\r\n"
-#define SECRET      "dGhpcyBwb29kbGUgYml0ZXM="
+#define GET_REQUEST "GET / HTTP/1.0\r\n\r\n"
 
-struct options
-{
-    const char *path;
-    const char *body;
-    int debug_level;
-};
-
-#define USAGE \
-    "\n usage: vulnerable_cliet param=value ...\n"      \
-    "\n acceptable parameters:\n"                       \
-    "    path=%%s           default: \"path\"\n"        \
-    "    body=%%s           default: \"body\"\n"        \
-    "    debug_level=%%d    default: 0\n"
+#define DEBUG_LEVEL 0
 
 static void my_debug( void *ctx, int level,
                       const char *file, int line,
@@ -96,17 +85,74 @@ static void my_debug( void *ctx, int level,
     fflush(  (FILE *) ctx  );
 }
 
-int main( int argc, char **argv )
+struct vrfy_state
 {
-    int ret, len, written, i;
+    const char **pins;  /* pointer to pin list */
+    // TODO: add your things here if needed
+};
+
+/*
+ * X.509 cert verification callback
+ *
+ * XXX This is a stub to get you started, just printing some information.
+ */
+static int my_verify( void *data, mbedtls_x509_crt *crt, int depth, uint32_t *flags )
+{
+    char buf[1024];
+    struct vrfy_state *state = (struct vrfy_state *) data;
+
+    mbedtls_printf( "\nVerify requested for (Depth %d):\n", depth );
+    mbedtls_x509_crt_info( buf, sizeof( buf ), "    ", crt );
+    mbedtls_printf( "%s", buf );
+
+    x509_crt_pkhash( crt, buf, sizeof( buf ) );
+    mbedtls_printf( "  Certificate public key hash: %s\n", buf );
+
+    // TODO: check certificate against pins
+    (void) state;
+
+    if ( ( *flags ) == 0 )
+        mbedtls_printf( "  This certificate has no issues\n" );
+    else
+    {
+        mbedtls_x509_crt_verify_info( buf, sizeof( buf ), "  ! ", *flags );
+        mbedtls_printf( "%s\n", buf );
+    }
+
+    return( 0 );
+}
+
+/* XXX
+ * NULL-terminated list of permanent public-key pins for localhost.
+ * All pins entries are base64-encoded SHA-256 hashes of public keys.
+ *
+ * The pins were generated and checked with the following commands:
+ *
+ * openssl pkey -in s1.key -outform der -pubout | openssl sha256 -binary | base64
+ * openssl x509 -in s1-1.crt -noout -pubkey | openssl pkey -pubin -outform der | openssl sha256 -binary | base64
+ *
+ * cd ../mbedtls/tests/data_files
+ * openssl pkey -in test-ca2.key -outform der -pubout | openssl sha256 -binary | base64
+ * openssl x509 -in test-ca2.crt -noout -pubkey | openssl pkey -pubin -outform der | openssl sha256 -binary | base64
+ */
+static const char *pins[] =
+{
+    "DUe7MplcTzdCKN1AHKRr5P4xPviZYMgbjG24tQLz9cU=", /* test-ca2.key */
+    "CrmM1N0luRPxqGGmV2nzbGzBRK8jJv80ohi1E4hVI34=", /* s1.key */
+    NULL
+};
+
+int main( void )
+{
+    int ret, len, written;
     mbedtls_net_context server_fd;
     unsigned char buf[1024];
-    const char *pers = "vulnerable_client";
-    const int ciphersuites_rsa_aes_cbc[] = {
-        MBEDTLS_TLS_RSA_WITH_AES_128_CBC_SHA,
-        0
+    const char *pers = "pinning_client";
+
+    /* XXX create some state for our verify callback */
+    struct vrfy_state vrfy_state = {
+        .pins = pins,
     };
-    struct options opt = { "path", "body", 0 };
 
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctr_drbg;
@@ -121,37 +167,6 @@ int main( int argc, char **argv )
     mbedtls_x509_crt_init( &cacert );
     mbedtls_ctr_drbg_init( &ctr_drbg );
     mbedtls_entropy_init( &entropy );
-
-    if( argc == 0 )
-    {
-usage:
-        mbedtls_printf( USAGE );
-        ret = 1;
-        goto exit;
-    }
-
-    for( i = 1; i < argc; i++ )
-    {
-        char *p, *q;
-
-        p = argv[i];
-        if( ( q = strchr( p, '=' ) ) == NULL )
-            goto usage;
-        *q++ = '\0';
-
-        if( strcmp( p, "path" ) == 0 )
-            opt.path = q;
-        else if( strcmp( p, "body" ) == 0 )
-            opt.body = q;
-        else if( strcmp( p, "debug_level" ) == 0 )
-        {
-            opt.debug_level = atoi( q );
-            if( opt.debug_level < 0 || opt.debug_level > 5 )
-                goto usage;
-        }
-        else
-            goto usage;
-    }
 
     /*
      * 0. Initialize the RNG and the session data
@@ -216,22 +231,15 @@ usage:
     }
 
 #if defined(MBEDTLS_DEBUG_C)
-    mbedtls_debug_set_threshold( opt.debug_level );
+    mbedtls_debug_set_threshold( DEBUG_LEVEL );
 #endif
 
     mbedtls_ssl_conf_ca_chain( &conf, &cacert, NULL );
     mbedtls_ssl_conf_rng( &conf, mbedtls_ctr_drbg_random, &ctr_drbg );
     mbedtls_ssl_conf_dbg( &conf, my_debug, stdout );
 
-    /* Make the client vulnerable to the POODLE padding oracle
-     * by forcing SSL 3.0 with a CBC cipher */
-    mbedtls_ssl_conf_min_version( &conf, MBEDTLS_SSL_MAJOR_VERSION_3,
-                                        MBEDTLS_SSL_MINOR_VERSION_0 );
-    mbedtls_ssl_conf_max_version( &conf, MBEDTLS_SSL_MAJOR_VERSION_3,
-                                        MBEDTLS_SSL_MINOR_VERSION_0 );
-    mbedtls_ssl_conf_ciphersuites( &conf, ciphersuites_rsa_aes_cbc );
-    mbedtls_ssl_conf_cbc_record_splitting( &conf,
-                                MBEDTLS_SSL_CBC_RECORD_SPLITTING_DISABLED );
+    /* XXX: register our certificate verification callback */
+    mbedtls_ssl_conf_verify( &conf, my_verify, &vrfy_state );
 
     if( ( ret = mbedtls_ssl_setup( &ssl, &conf ) ) != 0 )
     {
@@ -239,7 +247,7 @@ usage:
         goto exit;
     }
 
-    if( ( ret = mbedtls_ssl_set_hostname( &ssl, "localhost" ) ) != 0 )
+    if( ( ret = mbedtls_ssl_set_hostname( &ssl, SERVER_NAME ) ) != 0 )
     {
         mbedtls_printf( " failed\n  ! mbedtls_ssl_set_hostname returned %d\n\n", ret );
         goto exit;
@@ -272,8 +280,7 @@ usage:
     mbedtls_printf( "  > Write to server:" );
     fflush( stdout );
 
-    len = snprintf( (char *) buf, sizeof( buf ), POST_REQUEST,
-                    opt.path, SECRET, opt.body );
+    len = snprintf( (char *) buf, sizeof( buf ), GET_REQUEST );
     if( len < 0 || (size_t) len > sizeof( buf ) )
     {
         mbedtls_printf( " failed\n  ! buffer too small for request\n\n" );
