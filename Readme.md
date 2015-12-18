@@ -16,7 +16,8 @@ alors vous débrouiller pour le compiler.
 
 ## Rendu du projet
 
-Seul le projet 1 est à rendre. La date limite est le 21 décembre.
+Seul le projet 1 est à rendre. La date limite est le 28 décembre à 8h du
+matin.
 
 Vous devez rendre une archive (zip ou tar) contenant :
 - le source du proxy modifié (`mitm_proxy.c`)
