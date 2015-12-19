@@ -78,7 +78,20 @@ Vous pouvez contrôler que vous n'avez pas régressé (fréquence d'acceptation)
 acceptée, et vérifier que la dernière valeur affichée par le proxy est bonne.
 0. Félicitations, vous venez de casser un octet du secret. Itérez.
 
-N'hésitez pas à consulter le [papier][POODLE] !
+N'hésitez pas à relire les explications du cours (partie 1, slides 21 à 28) et
+à consulter le [papier][POODLE] ! Quelques références supplémentaires :
+
+- blog de [Mathew Green][CE]
+- blog d'[Adam Langley][IV] (attention, explications avec des blocs de 8
+  octets, pensez à adapter pour des blocs AES de 16 octets).
+
+Surtout, pour voir comment retrouver la valeur de l'octet recherché, pensez à
+prendre une respiration profonde, du papier et un crayon, et à écrire calmement
+ce qui se passe. C'est vraiment le genre de calcul qui est plus facile quand
+on le fait soi-même que quand on regarde quelqu'un le faire au tableau.
+
+[CE]: http://blog.cryptographyengineering.com/2014/10/attack-of-week-poodle.html
+[IV]: https://www.imperialviolet.org/2014/10/14/poodle.html
 
 Une fois que votre attaque fonctionne, vous pouvez la benchmarker (nombre de
 requêtes, temps), chercher à l'optimiser, où à l'étendre au cas où la longueur
