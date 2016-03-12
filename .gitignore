@@ -1,1 +1,5 @@
 /external
+/*.tar*
+/*.tgz*
+/*.zip
+/rendu
