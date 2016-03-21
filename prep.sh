@@ -9,6 +9,8 @@ rm -rf rendu
 mkdir rendu
 ln -s ../mbedtls rendu/mbedtls
 
+( cd mbedtls/programs && make ssl/ssl_server2 )
+
 mpgdiff() {
     diff $1 ../../project-1/$1 > ${1}.mpg.diff
     diff -w $1 ../../project-1/$1 > ${1}.mpg.diff-w
@@ -49,6 +51,16 @@ for fn in *.zip *.tgz *.tar*; do
 
     if mpgdiff Makefile; then
         rm Makefile.mpg.diff*
+
+        if make > make.log 2> make.err; then
+            if [ -s make.err ]; then
+                touch BAD-WARNINGS
+            else
+                rm -f make.err
+            fi
+        else
+            touch BAD-DOES-NOT-BUILD
+        fi
     else
         touch BAD-MAKEFILE-MODIFIED
     fi
