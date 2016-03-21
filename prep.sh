@@ -11,6 +11,8 @@ ln -s ../mbedtls rendu/mbedtls
 
 ( cd mbedtls/programs && make ssl/ssl_server2 )
 
+( cd project-1 && ls ) > rendu/ref-ls
+
 mpgdiff() {
     diff $1 ../../project-1/$1 > ${1}.mpg.diff
     diff -w $1 ../../project-1/$1 > ${1}.mpg.diff-w
@@ -39,6 +41,9 @@ for fn in *.zip *.tgz *.tar*; do
     fi
 
     if ls | grep '\.mpg\.diff'; then false; fi
+
+    ls > ../tmp
+    diff ../tmp ../ref-ls > NEW-FILE || true
 
     mpgdiff mitm_proxy.c || true
     mpgdiff mitm_proxy.c -b || true
