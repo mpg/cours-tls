@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Get projects ready for being graded
-# Assumes all projects are at the root
+# Assumes all zipped/tared projects are at the root
 
 set -eu
 
@@ -10,8 +10,6 @@ mkdir rendu
 ln -s ../mbedtls rendu/mbedtls
 
 ( cd mbedtls/programs && make ssl/ssl_server2 )
-
-( cd project-1 && ls ) > rendu/ref-ls
 
 mpgdiff() {
     diff $1 ../../project-1/$1 > ${1}.mpg.diff
@@ -22,53 +20,56 @@ for fn in *.zip *.tgz *.tar*; do
     name="${fn%%.*}"
     printf "${name}... "
 
-    if [ -d "rendu/$name" ]; then false; fi
-    cp -r project-1 "rendu/$name"
-
+    mkdir "rendu/$name"
     cd "rendu/$name"
 
     if echo "$fn" | grep '\.zip$' > /dev/null; then
-        unzip -o ../../$fn >/dev/null
+        unzip ../../$fn >/dev/null
     else
         tar xf ../../$fn
     fi
 
-    if [ -e mitm_proxy.c ]; then :; else
+    if ls -R | egrep '\.mpg\.diff|GOOD|BAD|FILES'; then false; fi
+
+    find . -type f | sed 's/^\.\///' > ../FILES
+    mv ../FILES .
+
+    if grep / FILES >/dev/null && [ ! -e mitm_proxy.c ]; then
         touch BAD-LAYOUT-DIR
-        if [ -d project-1 ]; then
-            cp -r project-1/* .
-        fi
+        dir="$( sed 's/\/.*//' FILES | sort -u )"
+        test -d "$dir"
+        mv "$dir"/* .
+        rmdir $dir
     fi
 
-    if ls | grep '\.mpg\.diff'; then false; fi
+    if grep flexible_server * >/dev/null; then
+        touch GOOD-SERVER
+    fi
 
-    ls > ../tmp
-    diff ../tmp ../ref-ls > NEW-FILE || true
+    if grep -i base64 * >/dev/null; then
+        touch GOOD-BASE64
+    fi
 
-    mpgdiff mitm_proxy.c || true
-    mpgdiff mitm_proxy.c -b || true
-
-    if mpgdiff vulnerable_client.c; then
-        rm vulnerable_client.c.mpg.diff*
+    if [ -e mitm_proxy.c ]; then
+        mpgdiff mitm_proxy.c || true
     else
-        touch BAD-CLIENT-MODIFIED
+        touch BAD-NO-PROXY-SOURCE
     fi
 
-    if mpgdiff Makefile; then
-        rm Makefile.mpg.diff*
+    cp -S.BAD -b ../../project-1/vulnerable_client.c .
+    cp -S.BAD -b ../../project-1/Makefile .
 
-        if make > make.log 2> make.err; then
-            if [ -s make.err ]; then
-                touch BAD-WARNINGS
-            else
-                rm -f make.err
-            fi
+    if make > make.log 2> make.err; then
+        if [ -s make.err ]; then
+            touch BAD-WARNINGS
         else
-            touch BAD-DOES-NOT-BUILD
+            rm -f make.err
         fi
     else
-        touch BAD-MAKEFILE-MODIFIED
+        touch BAD-DOES-NOT-BUILD
     fi
+
+    ls | egrep 'GOOD|BAD' >> FILES || true
 
     cd ../..
     echo "done"
